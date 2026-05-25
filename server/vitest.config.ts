@@ -29,9 +29,10 @@ export default defineConfig({
       reportsDirectory: './coverage',
       include: ['src/**/*.ts'],
       // Coverage gate scoped to the new NestJS code only — the legacy codebase
-      // is intentionally ungated. Ratchet these up as more modules are migrated.
+      // is intentionally ungated. Raised to the DoD's >=80% bar once the first
+      // module (weather) landed; ratchet further as more modules are migrated.
       thresholds: {
-        'src/nest/**/*.ts': { statements: 60, branches: 55, functions: 55, lines: 60 },
+        'src/nest/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
       },
     },
   },
@@ -57,5 +58,12 @@ export default defineConfig({
           import.meta.url
       ).pathname,
     },
+    // The server build emits @trek/shared next to its source (shared/src/*.js,
+    // needed by the prod dist via tsc-alias). Vite's default extension order
+    // prefers .js over .ts, so after a build the tests would load that compiled
+    // CJS instead of the source — and its `require('zod')` is unresolvable from
+    // the shared/ dir on CI (only server deps are installed there). Resolve .ts
+    // first so tests always run the source, whose zod import resolves via Vite.
+    extensions: ['.ts', '.mts', '.mjs', '.js', '.cts', '.cjs', '.tsx', '.jsx', '.json'],
   },
 });
