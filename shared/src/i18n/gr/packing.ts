@@ -90,5 +90,8 @@ const packing: TranslationStrings = {
     { name: 'Τσιρότα', category: 'Υγεία' },
     { name: 'Απολυμαντικό', category: 'Υγεία' },
   ],
+  'packing.makePrivate': 'Ορισμός ως ιδιωτικό',
+  'packing.makePublic': 'Κοινή χρήση',
+  'packing.privateHint': 'Ιδιωτικό — ορατό μόνο σε εσάς',
 };
 export default packing;

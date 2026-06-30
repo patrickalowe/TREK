@@ -179,5 +179,8 @@ const packing: TranslationStrings = {
       category: '健康',
     },
   ],
+  'packing.makePrivate': '非公開にする',
+  'packing.makePublic': '共有する',
+  'packing.privateHint': '非公開 — 自分のみ表示',
 };
 export default packing;

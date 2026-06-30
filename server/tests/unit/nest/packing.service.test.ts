@@ -44,14 +44,37 @@ describe('PackingService (wrapper delegation + helpers)', () => {
     expect(broadcast).toHaveBeenCalledWith('5', 'packing:created', { item: 1 }, 'sock');
   });
 
+  describe('broadcastItem (private-item scoping, #858)', () => {
+    it('broadcasts a shared item to the whole room (no onlyUserId)', () => {
+      svc().broadcastItem('5', 'packing:created', { item: 1 }, { is_private: 0, owner_id: 7 }, 'sock');
+      expect(broadcast).toHaveBeenCalledWith('5', 'packing:created', { item: 1 }, 'sock', undefined);
+    });
+
+    it('scopes a private item to its owner', () => {
+      svc().broadcastItem('5', 'packing:created', { item: 1 }, { is_private: 1, owner_id: 7 }, 'sock');
+      expect(broadcast).toHaveBeenCalledWith('5', 'packing:created', { item: 1 }, 'sock', 7);
+    });
+
+    it('falls back to a room broadcast when the private item has no owner', () => {
+      svc().broadcastItem('5', 'packing:created', { item: 1 }, { is_private: 1, owner_id: null }, 'sock');
+      expect(broadcast).toHaveBeenCalledWith('5', 'packing:created', { item: 1 }, 'sock', undefined);
+    });
+  });
+
+  it('getItemPrivacy reads the privacy fields for an item', () => {
+    dbMock._stmt.get.mockReturnValueOnce({ is_private: 1, owner_id: 3 });
+    expect(svc().getItemPrivacy('5', '9')).toEqual({ is_private: 1, owner_id: 3 });
+    expect(dbMock.prepare).toHaveBeenCalledWith(expect.stringContaining('is_private, owner_id'));
+  });
+
   it('forwards every item/bag/template/assignee call to the legacy service', () => {
     const s = svc();
     s.verifyTripAccess('5', 1); expect(pk.verifyTripAccess).toHaveBeenCalledWith('5', 1);
-    s.listItems('5'); expect(pk.listItems).toHaveBeenCalledWith('5');
-    s.createItem('5', { name: 'a' }); expect(pk.createItem).toHaveBeenCalledWith('5', { name: 'a' });
-    s.updateItem('5', '2', { name: 'b' } as never, ['name']); expect(pk.updateItem).toHaveBeenCalledWith('5', '2', { name: 'b' }, ['name'], undefined);
+    s.listItems('5'); expect(pk.listItems).toHaveBeenCalledWith('5', undefined);
+    s.createItem('5', { name: 'a' }); expect(pk.createItem).toHaveBeenCalledWith('5', { name: 'a' }, undefined);
+    s.updateItem('5', '2', { name: 'b' } as never, ['name']); expect(pk.updateItem).toHaveBeenCalledWith('5', '2', { name: 'b' }, ['name'], undefined, undefined);
     s.deleteItem('5', '2'); expect(pk.deleteItem).toHaveBeenCalledWith('5', '2');
-    s.bulkImport('5', [{ name: 'x' }] as never); expect(pk.bulkImport).toHaveBeenCalledWith('5', [{ name: 'x' }]);
+    s.bulkImport('5', [{ name: 'x' }] as never); expect(pk.bulkImport).toHaveBeenCalledWith('5', [{ name: 'x' }], undefined);
     s.reorderItems('5', [3, 1] as never); expect(pk.reorderItems).toHaveBeenCalledWith('5', [3, 1]);
     s.listBags('5'); expect(pk.listBags).toHaveBeenCalledWith('5');
     s.createBag('5', { name: 'Bag' }); expect(pk.createBag).toHaveBeenCalledWith('5', { name: 'Bag' });

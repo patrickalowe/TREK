@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useTripStore } from '../../store/tripStore'
+import { useAuthStore } from '../../store/authStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import {
-  CheckSquare, Square, Trash2, Plus, Pencil, Package,
+  CheckSquare, Square, Trash2, Plus, Pencil, Package, GripVertical, Lock, Unlock,
 } from 'lucide-react'
 import type { PackingItem, PackingBag } from '../../types'
 import { katColor } from './packingListPanel.helpers'
@@ -20,9 +21,18 @@ interface ArtikelZeileProps {
   bags?: PackingBag[]
   onCreateBag: (name: string) => Promise<PackingBag | undefined>
   canEdit?: boolean
+  // Drag-to-reorder (#969) — wired by the category group, which owns the order.
+  drag?: {
+    isDragging: boolean
+    isOver: boolean
+    onStart: (id: number) => void
+    onOver: (id: number) => void
+    onEnd: () => void
+    onDrop: (targetId: number) => void
+  }
 }
 
-export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDelete, bagTrackingEnabled, bags = [], onCreateBag, canEdit = true }: ArtikelZeileProps) {
+export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDelete, bagTrackingEnabled, bags = [], onCreateBag, canEdit = true, drag }: ArtikelZeileProps) {
   const isPlaceholder = item.name === PACKING_PLACEHOLDER_NAME
   const [editing, setEditing] = useState(false)
   const [editName, setEditName] = useState(isPlaceholder ? '' : item.name)
@@ -32,10 +42,22 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
   const [bagInlineCreate, setBagInlineCreate] = useState(false)
   const [bagInlineName, setBagInlineName] = useState('')
   const { togglePackingItem, updatePackingItem, deletePackingItem } = useTripStore()
+  const currentUserId = useAuthStore(s => s.user?.id)
   const toast = useToast()
   const { t } = useTranslation()
 
+  const isPrivate = !!item.is_private
+  // Only the owner may toggle privacy (#858). A private item is only ever rendered
+  // to its owner, so the toggle on those is always the owner's; for shared items
+  // it shows only to the member who created them — you don't privatize others' items.
+  const canTogglePrivacy = canEdit && !isPlaceholder && currentUserId != null && item.owner_id === currentUserId
+
   const handleToggle = () => togglePackingItem(tripId, item.id, !item.checked)
+
+  const handleTogglePrivacy = async () => {
+    try { await updatePackingItem(tripId, item.id, { is_private: isPrivate ? 0 : 1 }) }
+    catch { toast.error(t('packing.toast.saveError')) }
+  }
 
   const handleSaveName = async () => {
     if (!editName.trim()) { setEditing(false); setEditName(isPlaceholder ? '' : item.name); return }
@@ -58,18 +80,36 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
     catch { toast.error(t('common.error')) }
   }
 
+  const canDrag = canEdit && !isPlaceholder && !!drag
+
   return (
     <div
       className="group"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); setShowCatPicker(false); setShowBagPicker(false) }}
+      onDragOver={canDrag ? (e => { if (drag!.isDragging || true) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; drag!.onOver(item.id) } }) : undefined}
+      onDragLeave={canDrag ? (e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) drag!.onOver(-1) }) : undefined}
+      onDrop={canDrag ? (e => { e.preventDefault(); e.stopPropagation(); drag!.onDrop(item.id) }) : undefined}
       style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '6px 10px', borderRadius: 10, position: 'relative',
         background: hovered ? 'var(--bg-secondary)' : 'transparent',
-        transition: 'background 0.1s',
+        opacity: drag?.isDragging ? 0.4 : 1,
+        boxShadow: drag?.isOver ? 'inset 3px 0 0 0 var(--accent)' : 'none',
+        transition: 'background 0.1s, opacity 0.15s',
       }}
     >
+      {canDrag && (
+        <div
+          draggable
+          onDragStart={e => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; drag!.onStart(item.id) }}
+          onDragEnd={() => drag!.onEnd()}
+          title=""
+          style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: 'var(--text-faint)', flexShrink: 0, opacity: hovered ? 1 : 0.35, transition: 'opacity 0.15s' }}
+        >
+          <GripVertical size={13} />
+        </div>
+      )}
       <button onClick={handleToggle} style={{
         flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: 0, position: 'relative',
         width: 18, height: 18,
@@ -111,6 +151,13 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
           }}
         >
           {item.name}
+        </span>
+      )}
+
+      {/* Private indicator (#858) — shown to the owner so they know it's hidden from others */}
+      {isPrivate && (
+        <span title={t('packing.privateHint')} style={{ display: 'flex', alignItems: 'center', color: 'var(--accent)', flexShrink: 0 }}>
+          <Lock size={12} />
         </span>
       )}
 
@@ -244,6 +291,15 @@ export function ArtikelZeile({ item, tripId, categories, onCategoryChange, onDel
             </div>
           )}
         </div>
+
+        {canTogglePrivacy && (
+          <button onClick={handleTogglePrivacy} title={isPrivate ? t('packing.makePublic') : t('packing.makePrivate')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 4px', borderRadius: 6, display: 'flex', color: isPrivate ? 'var(--accent)' : 'var(--text-faint)' }}
+            onMouseEnter={e => { if (!isPrivate) e.currentTarget.style.color = 'var(--text-secondary)' }}
+            onMouseLeave={e => { if (!isPrivate) e.currentTarget.style.color = 'var(--text-faint)' }}>
+            {isPrivate ? <Unlock size={13} /> : <Lock size={13} />}
+          </button>
+        )}
 
         <button onClick={() => setEditing(true)} title={t('common.rename')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}
           onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>

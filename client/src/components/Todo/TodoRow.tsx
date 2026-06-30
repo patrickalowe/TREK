@@ -1,10 +1,10 @@
-import { CheckSquare, Square, ChevronRight, Flag, Calendar } from 'lucide-react'
+import { CheckSquare, Square, ChevronRight, Flag, Calendar, GripVertical } from 'lucide-react'
 import type { TodoItem } from '../../types'
 import { katColor, PRIO_CONFIG, type Member } from './todoListModel'
 
 /** A single task row in the todo list. Pure presentation; all behaviour is
  *  delegated to onSelect/onToggle so TodoListPanel stays a layout component. */
-export default function TodoRow({ item, members, categories, today, isSelected, canEdit, formatDate, onSelect, onToggle }: {
+export default function TodoRow({ item, members, categories, today, isSelected, canEdit, formatDate, onSelect, onToggle, drag }: {
   item: TodoItem
   members: Member[]
   categories: string[]
@@ -14,23 +14,50 @@ export default function TodoRow({ item, members, categories, today, isSelected, 
   formatDate: (d: string) => string
   onSelect: (id: number | null) => void
   onToggle: (id: number, checked: boolean) => void
+  // Drag-to-reorder (#969); only provided when manual ordering is active.
+  drag?: {
+    isDragging: boolean
+    isOver: boolean
+    onStart: (id: number) => void
+    onOver: (id: number) => void
+    onEnd: () => void
+    onDrop: (targetId: number) => void
+  }
 }) {
   const done = !!item.checked
   const assignedUser = members.find(m => m.id === item.assigned_user_id)
   const isOverdue = item.due_date && !done && item.due_date < today
   const catColor = item.category ? katColor(item.category, categories) : null
+  const canDrag = canEdit && !!drag
 
   return (
     <div key={item.id}
       onClick={() => onSelect(isSelected ? null : item.id)}
+      onDragOver={canDrag ? (e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; drag!.onOver(item.id) }) : undefined}
+      onDragLeave={canDrag ? (e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) drag!.onOver(-1) }) : undefined}
+      onDrop={canDrag ? (e => { e.preventDefault(); e.stopPropagation(); drag!.onDrop(item.id) }) : undefined}
       style={{
         display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px',
         borderBottom: '1px solid var(--border-faint)', cursor: 'pointer',
         background: isSelected ? 'var(--bg-hover)' : 'transparent',
-        transition: 'background 0.1s',
+        opacity: drag?.isDragging ? 0.4 : 1,
+        boxShadow: drag?.isOver ? 'inset 3px 0 0 0 var(--accent)' : 'none',
+        transition: 'background 0.1s, opacity 0.15s',
       }}
       onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(0,0,0,0.02)' }}
       onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}>
+
+      {canDrag && (
+        <div
+          draggable
+          onClick={e => e.stopPropagation()}
+          onDragStart={e => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; drag!.onStart(item.id) }}
+          onDragEnd={() => drag!.onEnd()}
+          style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: 'var(--text-faint)', flexShrink: 0, marginLeft: -6 }}
+        >
+          <GripVertical size={14} />
+        </div>
+      )}
 
       {/* Checkbox */}
       <button onClick={e => { e.stopPropagation(); if (canEdit) onToggle(item.id, !done) }}

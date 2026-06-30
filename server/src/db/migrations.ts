@@ -3132,6 +3132,21 @@ function runMigrations(db: Database.Database): void {
         if (!err.message?.includes('duplicate column name')) throw err;
       }
     },
+    // Private packing items (#858): an item can be hidden from other trip members.
+    // is_private toggles the visibility; owner_id records who it belongs to so the
+    // listing can show it only to them. owner_id is NULL on legacy rows (shared).
+    () => {
+      for (const stmt of [
+        'ALTER TABLE packing_items ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0',
+        'ALTER TABLE packing_items ADD COLUMN owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL',
+      ]) {
+        try {
+          db.exec(stmt);
+        } catch (err: any) {
+          if (!err.message?.includes('duplicate column name')) throw err;
+        }
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

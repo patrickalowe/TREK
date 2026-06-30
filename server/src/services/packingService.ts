@@ -8,20 +8,28 @@ export { verifyTripAccess } from './tripAccess';
 
 // ── Items ──────────────────────────────────────────────────────────────────
 
-export function listItems(tripId: string | number) {
+export function listItems(tripId: string | number, userId?: number) {
+  // Private items (#858) are visible only to their owner; shared items
+  // (is_private = 0) are visible to everyone. Without a userId (internal callers
+  // such as trip export) the unfiltered list is returned for back-compat.
+  if (userId == null) {
+    return db.prepare(
+      'SELECT * FROM packing_items WHERE trip_id = ? ORDER BY sort_order ASC, created_at ASC'
+    ).all(tripId);
+  }
   return db.prepare(
-    'SELECT * FROM packing_items WHERE trip_id = ? ORDER BY sort_order ASC, created_at ASC'
-  ).all(tripId);
+    'SELECT * FROM packing_items WHERE trip_id = ? AND (is_private = 0 OR owner_id = ?) ORDER BY sort_order ASC, created_at ASC'
+  ).all(tripId, userId);
 }
 
-export function createItem(tripId: string | number, data: { name: string; category?: string; checked?: boolean; quantity?: number }) {
+export function createItem(tripId: string | number, data: { name: string; category?: string; checked?: boolean; quantity?: number; is_private?: boolean }, ownerId?: number) {
   const maxOrder = db.prepare('SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?').get(tripId) as { max: number | null };
   const sortOrder = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
   const qty = Math.max(1, Math.min(999, Number(data.quantity) || 1));
 
   const result = db.prepare(
-    'INSERT INTO packing_items (trip_id, name, checked, category, sort_order, quantity, updated_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)'
-  ).run(tripId, data.name, data.checked ? 1 : 0, data.category || 'Allgemein', sortOrder, qty);
+    'INSERT INTO packing_items (trip_id, name, checked, category, sort_order, quantity, is_private, owner_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)'
+  ).run(tripId, data.name, data.checked ? 1 : 0, data.category || 'Allgemein', sortOrder, qty, data.is_private ? 1 : 0, ownerId ?? null);
 
   return db.prepare('SELECT * FROM packing_items WHERE id = ?').get(result.lastInsertRowid);
 }
@@ -29,11 +37,12 @@ export function createItem(tripId: string | number, data: { name: string; catego
 export function updateItem(
   tripId: string | number,
   id: string | number,
-  data: { name?: string; checked?: number; category?: string; weight_grams?: number | null; bag_id?: number | null; quantity?: number },
+  data: { name?: string; checked?: number; category?: string; weight_grams?: number | null; bag_id?: number | null; quantity?: number; is_private?: boolean },
   bodyKeys: string[],
   ifMatch?: string,
+  actingUserId?: number,
 ): unknown | UpdateConflict | null {
-  const item = db.prepare('SELECT * FROM packing_items WHERE id = ? AND trip_id = ?').get(id, tripId) as { updated_at?: string | null } | undefined;
+  const item = db.prepare('SELECT * FROM packing_items WHERE id = ? AND trip_id = ?').get(id, tripId) as { updated_at?: string | null; owner_id?: number | null } | undefined;
   if (!item) return null;
 
   // Optimistic concurrency (#1135): reject a stale offline overwrite. Absent
@@ -41,6 +50,10 @@ export function updateItem(
   if (ifMatch !== undefined && item.updated_at != null && String(item.updated_at) !== ifMatch) {
     return { conflict: true, server: db.prepare('SELECT * FROM packing_items WHERE id = ?').get(id) };
   }
+
+  // Privatizing an unowned (legacy) item stamps the acting user as its owner so
+  // the visibility filter still has someone to match (#858).
+  const claimOwner = bodyKeys.includes('is_private') && !!data.is_private && item.owner_id == null && actingUserId != null;
 
   db.prepare(`
     UPDATE packing_items SET
@@ -50,6 +63,8 @@ export function updateItem(
       weight_grams = CASE WHEN ? THEN ? ELSE weight_grams END,
       bag_id = CASE WHEN ? THEN ? ELSE bag_id END,
       quantity = CASE WHEN ? THEN ? ELSE quantity END,
+      is_private = CASE WHEN ? THEN ? ELSE is_private END,
+      owner_id = CASE WHEN ? THEN ? ELSE owner_id END,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(
@@ -63,6 +78,10 @@ export function updateItem(
     data.bag_id ?? null,
     bodyKeys.includes('quantity') ? 1 : 0,
     data.quantity ? Math.max(1, Math.min(999, Number(data.quantity))) : 1,
+    bodyKeys.includes('is_private') ? 1 : 0,
+    data.is_private ? 1 : 0,
+    claimOwner ? 1 : 0,
+    actingUserId ?? null,
     id
   );
 
@@ -70,11 +89,13 @@ export function updateItem(
 }
 
 export function deleteItem(tripId: string | number, id: string | number) {
-  const item = db.prepare('SELECT id FROM packing_items WHERE id = ? AND trip_id = ?').get(id, tripId);
-  if (!item) return false;
+  // Return the deleted row (not just a boolean) so callers can target the
+  // delete broadcast at the owner when the item was private (#858).
+  const item = db.prepare('SELECT * FROM packing_items WHERE id = ? AND trip_id = ?').get(id, tripId) as { is_private?: number; owner_id?: number | null } | undefined;
+  if (!item) return null;
 
   db.prepare('DELETE FROM packing_items WHERE id = ?').run(id);
-  return true;
+  return item;
 }
 
 // ── Bulk Import ────────────────────────────────────────────────────────────
@@ -86,13 +107,14 @@ interface ImportItem {
   weight_grams?: string | number;
   bag?: string;
   quantity?: number;
+  is_private?: boolean;
 }
 
-export function bulkImport(tripId: string | number, items: ImportItem[]) {
+export function bulkImport(tripId: string | number, items: ImportItem[], ownerId?: number) {
   const maxOrder = db.prepare('SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?').get(tripId) as { max: number | null };
   let sortOrder = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
 
-  const stmt = db.prepare('INSERT INTO packing_items (trip_id, name, checked, category, weight_grams, bag_id, sort_order, quantity, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)');
+  const stmt = db.prepare('INSERT INTO packing_items (trip_id, name, checked, category, weight_grams, bag_id, sort_order, quantity, is_private, owner_id, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)');
   const created: any[] = [];
 
   const insertAll = db.transaction(() => {
@@ -116,7 +138,7 @@ export function bulkImport(tripId: string | number, items: ImportItem[]) {
       }
 
       const qty = Math.max(1, Math.min(999, Number(item.quantity) || 1));
-      const result = stmt.run(tripId, item.name.trim(), checked, item.category?.trim() || 'Other', weight, bagId, sortOrder++, qty);
+      const result = stmt.run(tripId, item.name.trim(), checked, item.category?.trim() || 'Other', weight, bagId, sortOrder++, qty, item.is_private ? 1 : 0, ownerId ?? null);
       created.push(db.prepare('SELECT * FROM packing_items WHERE id = ?').get(result.lastInsertRowid));
     }
   });

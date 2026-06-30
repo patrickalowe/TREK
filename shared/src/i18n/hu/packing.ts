@@ -180,5 +180,8 @@ const packing: TranslationStrings = {
       category: 'Egészség',
     },
   ],
+  'packing.makePrivate': 'Priváttá tétel',
+  'packing.makePublic': 'Megosztás',
+  'packing.privateHint': 'Privát — csak Ön látja',
 };
 export default packing;

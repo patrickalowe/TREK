@@ -90,5 +90,8 @@ const packing: TranslationStrings = {
     { name: 'Yara bandı', category: 'Sağlık' },
     { name: 'Dezenfektan', category: 'Sağlık' },
   ],
+  'packing.makePrivate': 'Gizli yap',
+  'packing.makePublic': 'Paylaş',
+  'packing.privateHint': 'Gizli — yalnızca siz görebilirsiniz',
 };
 export default packing;

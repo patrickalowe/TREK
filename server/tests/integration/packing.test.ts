@@ -147,6 +147,46 @@ describe('List packing items', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Private items (#858)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Private packing items (#858)', () => {
+  it('PACK-PRIV-001 — a private item is hidden from other members but visible to its owner', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+
+    // Owner creates one shared and one private item.
+    await request(app).post(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id)).send({ name: 'Shared tent' });
+    const priv = await request(app).post(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id)).send({ name: 'Surprise gift', is_private: true });
+    expect(priv.body.item.is_private).toBe(1);
+    expect(priv.body.item.owner_id).toBe(owner.id);
+
+    const ownerView = await request(app).get(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id));
+    const memberView = await request(app).get(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(member.id));
+
+    expect(ownerView.body.items.map((i: any) => i.name).sort()).toEqual(['Shared tent', 'Surprise gift']);
+    expect(memberView.body.items.map((i: any) => i.name)).toEqual(['Shared tent']);
+  });
+
+  it('PACK-PRIV-002 — toggling an item private hides it from other members', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+
+    const created = await request(app).post(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(owner.id)).send({ name: 'Diary' });
+    const id = created.body.item.id;
+
+    await request(app).put(`/api/trips/${trip.id}/packing/${id}`).set('Cookie', authCookie(owner.id)).send({ is_private: true });
+
+    const memberView = await request(app).get(`/api/trips/${trip.id}/packing`).set('Cookie', authCookie(member.id));
+    expect(memberView.body.items).toHaveLength(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Update packing item
 // ─────────────────────────────────────────────────────────────────────────────
 

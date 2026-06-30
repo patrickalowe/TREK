@@ -17,6 +17,9 @@ import { isUpdateConflict } from '../../services/conflictResult';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
+/** A packing item row carrying the privacy fields (#858) used to scope broadcasts. */
+type PackingItemRow = { is_private?: number; owner_id?: number | null; [key: string]: unknown };
+
 /**
  * /api/trips/:tripId/packing — trip-scoped packing list (items, bags, templates,
  * assignees).
@@ -51,7 +54,8 @@ export class PackingController {
   @Get()
   list(@CurrentUser() user: User, @Param('tripId') tripId: string) {
     this.requireTrip(tripId, user);
-    return { items: this.packing.listItems(tripId) };
+    // Pass the viewer so private items (#858) owned by other members are hidden.
+    return { items: this.packing.listItems(tripId, user.id) };
   }
 
   @Post('import')
@@ -66,9 +70,9 @@ export class PackingController {
     if (!Array.isArray(items) || items.length === 0) {
       throw new HttpException({ error: 'items must be a non-empty array' }, 400);
     }
-    const created = this.packing.bulkImport(tripId, items);
+    const created = this.packing.bulkImport(tripId, items, user.id);
     for (const item of created) {
-      this.packing.broadcast(tripId, 'packing:created', { item }, socketId);
+      this.packing.broadcastItem(tripId, 'packing:created', { item }, item, socketId);
     }
     return { items: created, count: created.length };
   }
@@ -77,7 +81,7 @@ export class PackingController {
   create(
     @CurrentUser() user: User,
     @Param('tripId') tripId: string,
-    @Body() body: { name?: string; category?: string; checked?: boolean },
+    @Body() body: { name?: string; category?: string; checked?: boolean; is_private?: boolean },
     @Headers('x-socket-id') socketId?: string,
   ) {
     const trip = this.requireTrip(tripId, user);
@@ -85,8 +89,8 @@ export class PackingController {
     if (!body.name) {
       throw new HttpException({ error: 'Item name is required' }, 400);
     }
-    const item = this.packing.createItem(tripId, { name: body.name, category: body.category, checked: body.checked });
-    this.packing.broadcast(tripId, 'packing:created', { item }, socketId);
+    const item = this.packing.createItem(tripId, { name: body.name, category: body.category, checked: body.checked, is_private: body.is_private }, user.id);
+    this.packing.broadcastItem(tripId, 'packing:created', { item }, item, socketId);
     return { item };
   }
 
@@ -114,8 +118,11 @@ export class PackingController {
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    const { name, checked, category, weight_grams, bag_id, quantity } = body as Record<string, never>;
-    const updated = this.packing.updateItem(tripId, id, { name, checked, category, weight_grams, bag_id, quantity }, Object.keys(body), ifMatch);
+    // Privacy state before the change, so a public↔private toggle (#858) can route
+    // the broadcast correctly instead of leaking a freshly-privatized item.
+    const before = this.packing.getItemPrivacy(tripId, id);
+    const { name, checked, category, weight_grams, bag_id, quantity, is_private } = body as Record<string, never>;
+    const updated = this.packing.updateItem(tripId, id, { name, checked, category, weight_grams, bag_id, quantity, is_private }, Object.keys(body), ifMatch, user.id);
     if (!updated) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }
@@ -123,8 +130,39 @@ export class PackingController {
     if (isUpdateConflict(updated)) {
       throw new HttpException({ error: 'conflict', server: updated.server }, 409);
     }
-    this.packing.broadcast(tripId, 'packing:updated', { item: updated }, socketId);
+    this.broadcastUpdate(tripId, id, updated as PackingItemRow, !!before?.is_private, socketId);
     return { item: updated };
+  }
+
+  /**
+   * Routes a packing-item update over WebSocket so private items (#858) stay
+   * scoped to their owner across the four public↔private transitions:
+   *  - stays private  → owner-only update
+   *  - public→private → drop it from the whole room, re-add for the owner
+   *  - private→public → create for members who lacked it, then update for all
+   *  - stays public   → plain update to all
+   */
+  private broadcastUpdate(
+    tripId: string,
+    id: string,
+    item: PackingItemRow,
+    wasPrivate: boolean,
+    socketId: string | undefined,
+  ): void {
+    const nowPrivate = !!item.is_private;
+    if (nowPrivate) {
+      if (wasPrivate) {
+        this.packing.broadcastItem(tripId, 'packing:updated', { item }, item, socketId);
+      } else {
+        this.packing.broadcast(tripId, 'packing:deleted', { itemId: Number(id) }, socketId);
+        this.packing.broadcastItem(tripId, 'packing:created', { item }, item, socketId);
+      }
+    } else {
+      if (wasPrivate) {
+        this.packing.broadcast(tripId, 'packing:created', { item }, socketId);
+      }
+      this.packing.broadcast(tripId, 'packing:updated', { item }, socketId);
+    }
   }
 
   @Delete(':id')
@@ -136,10 +174,12 @@ export class PackingController {
   ) {
     const trip = this.requireTrip(tripId, user);
     this.requireEdit(trip, user);
-    if (!this.packing.deleteItem(tripId, id)) {
+    const deleted = this.packing.deleteItem(tripId, id);
+    if (!deleted) {
       throw new HttpException({ error: 'Item not found' }, 404);
     }
-    this.packing.broadcast(tripId, 'packing:deleted', { itemId: Number(id) }, socketId);
+    // Scope the delete to the owner when the item was private (#858).
+    this.packing.broadcastItem(tripId, 'packing:deleted', { itemId: Number(id) }, deleted, socketId);
     return { success: true };
   }
 

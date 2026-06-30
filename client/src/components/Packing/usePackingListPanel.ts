@@ -44,7 +44,7 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   const [filter, setFilter] = useState('alle') // 'alle' | 'offen' | 'erledigt'
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCatName, setNewCatName] = useState('')
-  const { addPackingItem, updatePackingItem, deletePackingItem, togglePackingItem } = useTripStore()
+  const { addPackingItem, updatePackingItem, deletePackingItem, togglePackingItem, reorderPackingItems } = useTripStore()
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
   const canEdit = can('packing_edit', trip)
@@ -340,7 +340,7 @@ export function usePackingList({ tripId, items, openImportSignal = 0, clearCheck
   const font = { fontFamily: "var(--font-system)" }
 
   return {
-    tripId, items, inlineHeader, t, canEdit, isAdmin, font,
+    tripId, items, inlineHeader, t, canEdit, isAdmin, font, reorderPackingItems,
     filter, setFilter, addingCategory, setAddingCategory, newCatName, setNewCatName,
     tripMembers, categoryAssignees, handleSetAssignees, allCategories, gruppiert, abgehakt, fortschritt,
     handleAddItemToCategory, handleAddNewCategory, handleRenameCategory, handleDeleteCategory, handleDeleteItem, handleClearChecked,

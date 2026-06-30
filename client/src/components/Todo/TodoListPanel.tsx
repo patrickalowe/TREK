@@ -22,7 +22,7 @@ import TodoRow from './TodoRow'
 export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tripId: number; items: TodoItem[]; addItemSignal?: number }) {
   // Layout component: state/effects/derived/handlers live in useTodoList.
   const {
-    canEdit, t, formatDate, toggleTodoItem,
+    canEdit, t, formatDate, toggleTodoItem, reorderTodoItems,
     isMobile, filter, setFilter, selectedId, setSelectedId,
     isAddingNew, setIsAddingNew, sortByPrio, setSortByPrio,
     addingCategory, setAddingCategory, newCategoryName, setNewCategoryName,
@@ -30,6 +30,31 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
     totalCount, doneCount, overdueCount, myCount,
     addCategory, catCount,
   } = useTodoList(tripId, items, addItemSignal)
+
+  // Drag-to-reorder (#969). Manual ordering only makes sense when the list isn't
+  // sorted by priority; a drag within the filtered view is mapped back onto the
+  // full item order so unfiltered tasks keep their place.
+  const [dragId, setDragId] = useState<number | null>(null)
+  const [overId, setOverId] = useState<number | null>(null)
+  const canReorder = canEdit && !sortByPrio
+
+  const handleReorderDrop = (targetId: number) => {
+    const from = dragId
+    setDragId(null); setOverId(null)
+    if (from == null || from === targetId) return
+    const viewOrder = filtered.map(i => i.id)
+    const fi = viewOrder.indexOf(from)
+    const ti = viewOrder.indexOf(targetId)
+    if (fi < 0 || ti < 0) return
+    viewOrder.splice(fi, 1)
+    viewOrder.splice(ti, 0, from)
+    // Slot the reordered visible ids back into the positions they occupy in the
+    // global list, leaving every filtered-out task where it was.
+    const viewIds = new Set(filtered.map(i => i.id))
+    let vi = 0
+    const globalIds = items.map(i => (viewIds.has(i.id) ? viewOrder[vi++] : i.id))
+    reorderTodoItems(tripId, globalIds)
+  }
 
   // Sidebar filter item
   const SidebarItem = ({ id, icon: Icon, label, count, color }: { id: string; icon: any; label: string; count: number; color?: string }) => (
@@ -189,6 +214,14 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
                 formatDate={formatDate}
                 onSelect={(id) => { setSelectedId(id); setIsAddingNew(false) }}
                 onToggle={(id, checked) => toggleTodoItem(tripId, id, checked)}
+                drag={canReorder ? {
+                  isDragging: dragId === item.id,
+                  isOver: overId === item.id && dragId !== null && dragId !== item.id,
+                  onStart: (id) => { setDragId(id); setOverId(null) },
+                  onOver: (id) => setOverId(id),
+                  onEnd: () => { setDragId(null); setOverId(null) },
+                  onDrop: handleReorderDrop,
+                } : undefined}
               />
             ))
           )}

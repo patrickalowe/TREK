@@ -27,10 +27,34 @@ interface KategorieGruppeProps {
   bags?: PackingBag[]
   onCreateBag: (name: string) => Promise<PackingBag | undefined>
   canEdit?: boolean
+  // Drag-to-reorder (#969): the full ordered item list + a persist callback. The
+  // order is global, so a within-category drag is mapped back onto the full list.
+  allItems: PackingItem[]
+  onReorder: (orderedIds: number[]) => void
 }
 
-export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, onDeleteAll, onDeleteItem, onAddItem, assignees, tripMembers, onSetAssignees, bagTrackingEnabled, bags, onCreateBag, canEdit = true }: KategorieGruppeProps) {
+export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, onDeleteAll, onDeleteItem, onAddItem, assignees, tripMembers, onSetAssignees, bagTrackingEnabled, bags, onCreateBag, canEdit = true, allItems, onReorder }: KategorieGruppeProps) {
   const [offen, setOffen] = useState(true)
+  const [dragId, setDragId] = useState<number | null>(null)
+  const [overId, setOverId] = useState<number | null>(null)
+
+  const handleReorderDrop = (targetId: number) => {
+    const from = dragId
+    setDragId(null); setOverId(null)
+    if (from == null || from === targetId) return
+    const catOrder = items.map(i => i.id)
+    const fi = catOrder.indexOf(from)
+    const ti = catOrder.indexOf(targetId)
+    if (fi < 0 || ti < 0) return
+    catOrder.splice(fi, 1)
+    catOrder.splice(ti, 0, from)
+    // Slot the reordered category ids back into the positions this category's
+    // items occupy in the global list, leaving every other category untouched.
+    const catIds = new Set(items.map(i => i.id))
+    let ci = 0
+    const globalIds = allItems.map(i => (catIds.has(i.id) ? catOrder[ci++] : i.id))
+    onReorder(globalIds)
+  }
   const [editingName, setEditingName] = useState(false)
   const [editKatName, setEditKatName] = useState(kategorie)
   const [showMenu, setShowMenu] = useState(false)
@@ -232,7 +256,15 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
       {offen && (
         <div style={{ padding: '4px 4px 6px' }}>
           {items.map(item => (
-            <ArtikelZeile key={item.id} item={item} tripId={tripId} categories={allCategories} onCategoryChange={() => {}} onDelete={onDeleteItem} bagTrackingEnabled={bagTrackingEnabled} bags={bags} onCreateBag={onCreateBag} canEdit={canEdit} />
+            <ArtikelZeile key={item.id} item={item} tripId={tripId} categories={allCategories} onCategoryChange={() => {}} onDelete={onDeleteItem} bagTrackingEnabled={bagTrackingEnabled} bags={bags} onCreateBag={onCreateBag} canEdit={canEdit}
+              drag={canEdit ? {
+                isDragging: dragId === item.id,
+                isOver: overId === item.id && dragId !== null && dragId !== item.id,
+                onStart: (id) => { setDragId(id); setOverId(null) },
+                onOver: (id) => setOverId(id),
+                onEnd: () => { setDragId(null); setOverId(null) },
+                onDrop: handleReorderDrop,
+              } : undefined} />
           ))}
           {/* Inline add item */}
           {canEdit && (showAddItem ? (

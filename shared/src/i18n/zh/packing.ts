@@ -178,5 +178,8 @@ const packing: TranslationStrings = {
       category: '健康',
     },
   ],
+  'packing.makePrivate': '设为私密',
+  'packing.makePublic': '共享',
+  'packing.privateHint': '私密 — 仅你可见',
 };
 export default packing;

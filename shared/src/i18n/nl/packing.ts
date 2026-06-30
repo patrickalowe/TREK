@@ -179,5 +179,8 @@ const packing: TranslationStrings = {
       category: 'Gezondheid',
     },
   ],
+  'packing.makePrivate': 'Privé maken',
+  'packing.makePublic': 'Delen',
+  'packing.privateHint': 'Privé — alleen zichtbaar voor jou',
 };
 export default packing;

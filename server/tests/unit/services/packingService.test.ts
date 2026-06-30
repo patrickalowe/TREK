@@ -42,6 +42,10 @@ import {
   createBag,
   deleteBag,
   bulkImport,
+  createItem,
+  updateItem,
+  deleteItem,
+  listItems,
 } from '../../../src/services/packingService';
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -297,5 +301,80 @@ describe('bulkImport with quantity field', () => {
     expect(byName('Toothbrush').quantity).toBe(1);
     expect(byName('Batteries').quantity).toBe(999);
     expect(byName('Charger').quantity).toBe(1);
+  });
+});
+
+// ── Private items (#858) ──────────────────────────────────────────────────────
+
+describe('private items (#858)', () => {
+  it('PACK-SVC-014: createItem stamps the owner and is_private flag', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const shared = createItem(trip.id, { name: 'Tent' }, user.id) as any;
+    const secret = createItem(trip.id, { name: 'Gift', is_private: true }, user.id) as any;
+
+    expect(shared.is_private).toBe(0);
+    expect(shared.owner_id).toBe(user.id);
+    expect(secret.is_private).toBe(1);
+    expect(secret.owner_id).toBe(user.id);
+  });
+
+  it('PACK-SVC-015: listItems hides another member\'s private items but shows the owner theirs', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+
+    createItem(trip.id, { name: 'Shared' }, owner.id);
+    createItem(trip.id, { name: 'Private', is_private: true }, owner.id);
+
+    const ownerView = listItems(trip.id, owner.id) as any[];
+    const otherView = listItems(trip.id, other.id) as any[];
+    const unscoped = listItems(trip.id) as any[];
+
+    expect(ownerView.map(i => i.name).sort()).toEqual(['Private', 'Shared']);
+    expect(otherView.map(i => i.name)).toEqual(['Shared']);
+    // Without a viewer (internal callers) nothing is filtered.
+    expect(unscoped).toHaveLength(2);
+  });
+
+  it('PACK-SVC-016: updateItem toggles privacy and claims an unowned item for the actor', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    // Legacy-style row with no owner.
+    const id = Number((testDb.prepare('INSERT INTO packing_items (trip_id, name, checked, sort_order) VALUES (?, ?, 0, 0)').run(trip.id, 'Legacy') as any).lastInsertRowid);
+
+    const updated = updateItem(trip.id, id, { is_private: true }, ['is_private'], undefined, user.id) as any;
+    expect(updated.is_private).toBe(1);
+    expect(updated.owner_id).toBe(user.id);
+
+    const back = updateItem(trip.id, id, { is_private: false }, ['is_private'], undefined, user.id) as any;
+    expect(back.is_private).toBe(0);
+    // Ownership is retained once claimed.
+    expect(back.owner_id).toBe(user.id);
+  });
+
+  it('PACK-SVC-017: deleteItem returns the removed row (with privacy fields)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createItem(trip.id, { name: 'Private', is_private: true }, user.id) as any;
+
+    const deleted = deleteItem(trip.id, item.id) as any;
+    expect(deleted).not.toBeNull();
+    expect(deleted.is_private).toBe(1);
+    expect(deleted.owner_id).toBe(user.id);
+    expect(deleteItem(trip.id, item.id)).toBeNull();
+  });
+
+  it('PACK-SVC-018: bulkImport stamps the owner on every item', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    bulkImport(trip.id, [{ name: 'A' }, { name: 'B', is_private: true }], user.id);
+    const rows = testDb.prepare('SELECT * FROM packing_items WHERE trip_id = ? ORDER BY name').all(trip.id) as any[];
+    expect(rows.every(r => r.owner_id === user.id)).toBe(true);
+    expect(rows.find(r => r.name === 'B').is_private).toBe(1);
+    expect(rows.find(r => r.name === 'A').is_private).toBe(0);
   });
 });

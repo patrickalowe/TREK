@@ -179,5 +179,8 @@ const packing: TranslationStrings = {
       category: 'Здоров’я',
     },
   ],
+  'packing.makePrivate': 'Зробити приватним',
+  'packing.makePublic': 'Зробити спільним',
+  'packing.privateHint': 'Приватне — бачите лише ви',
 };
 export default packing;

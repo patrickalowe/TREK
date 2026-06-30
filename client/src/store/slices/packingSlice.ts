@@ -1,4 +1,5 @@
 import { packingRepo } from '../../repo/packingRepo'
+import { packingApi } from '../../api/client'
 import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { PackingItem } from '../../types'
@@ -13,6 +14,7 @@ export interface PackingSlice {
   updatePackingItem: (tripId: number | string, id: number, data: Partial<PackingItem>) => Promise<PackingItem>
   deletePackingItem: (tripId: number | string, id: number) => Promise<void>
   togglePackingItem: (tripId: number | string, id: number, checked: boolean) => Promise<void>
+  reorderPackingItems: (tripId: number | string, orderedIds: number[]) => Promise<void>
 }
 
 export const createPackingSlice = (set: SetState, get: GetState): PackingSlice => ({
@@ -66,6 +68,26 @@ export const createPackingSlice = (set: SetState, get: GetState): PackingSlice =
         )
       }))
       notify(getApiErrorMessage(err, 'Error updating item'), 'error')
+    }
+  },
+
+  reorderPackingItems: async (tripId, orderedIds) => {
+    const prev = get().packingItems
+    // Optimistic reorder: rebuild the array in the requested order, reindexing
+    // sort_order; any items not in orderedIds keep their place at the end.
+    set(state => {
+      const byId = new Map(state.packingItems.map(i => [i.id, i]))
+      const reordered = orderedIds
+        .map((id, idx): PackingItem | null => { const item = byId.get(id); return item ? { ...item, sort_order: idx } : null })
+        .filter((i): i is PackingItem => i !== null)
+      const remaining = state.packingItems.filter(i => !orderedIds.includes(i.id))
+      return { packingItems: [...reordered, ...remaining] }
+    })
+    try {
+      await packingApi.reorder(tripId, orderedIds)
+    } catch (err: unknown) {
+      set({ packingItems: prev })
+      notify(getApiErrorMessage(err, 'Error reordering items'), 'error')
     }
   },
 })

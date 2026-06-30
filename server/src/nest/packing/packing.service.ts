@@ -5,6 +5,9 @@ import { checkPermission } from '../../services/permissions';
 import type { User } from '../../types';
 import * as svc from '../../services/packingService';
 
+/** Privacy fields stamped on a packing item (#858). */
+type PrivacyFields = { is_private?: number; owner_id?: number | null };
+
 type Trip = NonNullable<ReturnType<typeof svc.verifyTripAccess>>;
 
 /**
@@ -27,24 +30,40 @@ export class PackingService {
     broadcast(tripId, event, payload, socketId);
   }
 
-  listItems(tripId: string) {
-    return svc.listItems(tripId);
+  /**
+   * Broadcast an item event, but keep private items (#858) off other members'
+   * screens: when the item is private the event is delivered only to its owner's
+   * sockets. Shared items broadcast to the whole trip room as before.
+   */
+  broadcastItem(tripId: string, event: string, payload: Record<string, unknown>, item: PrivacyFields | null | undefined, socketId: string | undefined): void {
+    const onlyUserId = item?.is_private && item.owner_id != null ? item.owner_id : undefined;
+    broadcast(tripId, event, payload, socketId, onlyUserId);
   }
 
-  createItem(tripId: string, data: { name: string; category?: string; checked?: boolean }) {
-    return svc.createItem(tripId, data);
+  listItems(tripId: string, userId?: number) {
+    return svc.listItems(tripId, userId);
   }
 
-  updateItem(tripId: string, id: string, data: Parameters<typeof svc.updateItem>[2], changedKeys: string[], ifMatch?: string) {
-    return svc.updateItem(tripId, id, data, changedKeys, ifMatch);
+  /** Reads an item's current privacy fields (#858) before an update, so the
+   *  controller can detect a public↔private transition and route the broadcast. */
+  getItemPrivacy(tripId: string, id: string): PrivacyFields | undefined {
+    return db.prepare('SELECT is_private, owner_id FROM packing_items WHERE id = ? AND trip_id = ?').get(id, tripId) as PrivacyFields | undefined;
   }
 
-  deleteItem(tripId: string, id: string): boolean {
+  createItem(tripId: string, data: { name: string; category?: string; checked?: boolean; is_private?: boolean }, ownerId?: number) {
+    return svc.createItem(tripId, data, ownerId);
+  }
+
+  updateItem(tripId: string, id: string, data: Parameters<typeof svc.updateItem>[2], changedKeys: string[], ifMatch?: string, actingUserId?: number) {
+    return svc.updateItem(tripId, id, data, changedKeys, ifMatch, actingUserId);
+  }
+
+  deleteItem(tripId: string, id: string) {
     return svc.deleteItem(tripId, id);
   }
 
-  bulkImport(tripId: string, items: Parameters<typeof svc.bulkImport>[1]) {
-    return svc.bulkImport(tripId, items);
+  bulkImport(tripId: string, items: Parameters<typeof svc.bulkImport>[1], ownerId?: number) {
+    return svc.bulkImport(tripId, items, ownerId);
   }
 
   reorderItems(tripId: string, orderedIds: Parameters<typeof svc.reorderItems>[1]): void {

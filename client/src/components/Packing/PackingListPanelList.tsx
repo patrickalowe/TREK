@@ -6,7 +6,7 @@ export function PackingList(S: PackingState) {
   const {
     items, gruppiert, t, tripId, allCategories, handleRenameCategory, handleDeleteCategory, handleDeleteItem,
     handleAddItemToCategory, categoryAssignees, tripMembers, handleSetAssignees,
-    bagTrackingEnabled, bags, handleCreateBagByName, canEdit,
+    bagTrackingEnabled, bags, handleCreateBagByName, canEdit, reorderPackingItems,
   } = S
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '10px 0 16px' }}>
@@ -40,6 +40,8 @@ export function PackingList(S: PackingState) {
               bags={bags}
               onCreateBag={handleCreateBagByName}
               canEdit={canEdit}
+              allItems={items}
+              onReorder={(orderedIds) => reorderPackingItems(tripId, orderedIds)}
             />
           ))}
         </div>

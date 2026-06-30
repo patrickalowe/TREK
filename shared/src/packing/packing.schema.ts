@@ -29,6 +29,11 @@ export const packingItemSchema = z.object({
   weight_grams: z.number().nullable().optional(),
   bag_id: z.number().nullable().optional(),
   quantity: z.number().optional(),
+  // Private items (#858): is_private is the raw SQLite INTEGER (0/1); owner_id is
+  // the user the item belongs to (NULL on legacy shared rows). The listing only
+  // returns another member's item when is_private is 0.
+  is_private: z.number().optional(),
+  owner_id: z.number().nullable().optional(),
   created_at: z.string().optional(),
   // Optimistic-concurrency token for offline conflict detection (#1135). Added
   // by migration 98; older rows backfill from created_at.
@@ -70,6 +75,8 @@ export const packingCreateItemRequestSchema = z.object({
   name: z.string().min(1),
   category: z.string().optional(),
   checked: z.boolean().optional(),
+  // Mark the new item private to its creator (#858).
+  is_private: z.boolean().optional(),
 });
 export type PackingCreateItemRequest = z.infer<typeof packingCreateItemRequestSchema>;
 
@@ -80,6 +87,8 @@ export const packingUpdateItemRequestSchema = z.object({
   weight_grams: z.number().nullable().optional(),
   bag_id: z.number().nullable().optional(),
   quantity: z.number().optional(),
+  // Toggle the item's privacy (#858).
+  is_private: z.boolean().optional(),
 });
 export type PackingUpdateItemRequest = z.infer<typeof packingUpdateItemRequestSchema>;
 
