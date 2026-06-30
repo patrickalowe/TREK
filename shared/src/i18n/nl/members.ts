@@ -20,5 +20,8 @@ const members: TranslationStrings = {
   'members.addError': 'Toevoegen mislukt',
   'members.removed': 'Lid verwijderd',
   'members.removeError': 'Verwijderen mislukt',
+  'members.makeOwner': 'Eigenaar maken',
+  'members.confirmTransfer': 'Eigenaarschap overdragen aan {name}? Je wordt een gewoon lid.',
+  'members.transferError': 'Overdracht van eigenaarschap mislukt',
 };
 export default members;

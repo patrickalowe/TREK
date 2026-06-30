@@ -20,5 +20,8 @@ const members: TranslationStrings = {
   'members.addError': 'Falha ao adicionar',
   'members.removed': 'Membro removido',
   'members.removeError': 'Falha ao remover',
+  'members.makeOwner': 'Tornar proprietário',
+  'members.confirmTransfer': 'Transferir a propriedade para {name}? Você se tornará um membro comum.',
+  'members.transferError': 'Falha ao transferir a propriedade',
 };
 export default members;

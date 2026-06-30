@@ -20,5 +20,8 @@ const members: TranslationStrings = {
   'members.addError': '추가 실패',
   'members.removed': '멤버가 제거되었습니다',
   'members.removeError': '제거 실패',
+  'members.makeOwner': '소유자로 지정',
+  'members.confirmTransfer': '{name}님에게 소유권을 이전하시겠습니까? 일반 멤버가 됩니다.',
+  'members.transferError': '소유권 이전 실패',
 };
 export default members;

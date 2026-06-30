@@ -20,5 +20,8 @@ const members: TranslationStrings = {
   'members.addError': 'Помилка додавання',
   'members.removed': 'Учасник видалений',
   'members.removeError': 'Помилка видалення',
+  'members.makeOwner': 'Призначити власником',
+  'members.confirmTransfer': 'Передати право власності користувачу {name}? Ви станете звичайним учасником.',
+  'members.transferError': 'Не вдалося передати право власності',
 };
 export default members;

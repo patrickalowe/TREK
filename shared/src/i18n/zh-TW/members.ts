@@ -20,5 +20,8 @@ const members: TranslationStrings = {
   'members.addError': '新增失敗',
   'members.removed': '成員已移除',
   'members.removeError': '移除失敗',
+  'members.makeOwner': '設為擁有者',
+  'members.confirmTransfer': '將擁有權轉移給 {name}？你將成為一般成員。',
+  'members.transferError': '轉移擁有權失敗',
 };
 export default members;

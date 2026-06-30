@@ -95,6 +95,10 @@ export class TripsService {
     tripSvc.removeMember(tripId, targetId);
   }
 
+  transferOwnership(tripId: string, newOwnerId: number, currentOwnerId: number) {
+    return tripSvc.transferOwnership(tripId, newOwnerId, currentOwnerId);
+  }
+
   exportICS(tripId: string) {
     return tripSvc.exportICS(tripId);
   }

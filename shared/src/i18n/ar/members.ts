@@ -20,5 +20,8 @@ const members: TranslationStrings = {
   'members.addError': 'فشلت الإضافة',
   'members.removed': 'تمت إزالة العضو',
   'members.removeError': 'فشلت الإزالة',
+  'members.makeOwner': 'تعيين كمالك',
+  'members.confirmTransfer': 'نقل الملكية إلى {name}؟ ستصبح عضوًا عاديًا.',
+  'members.transferError': 'فشل نقل الملكية',
 };
 export default members;

@@ -20,5 +20,8 @@ const members: TranslationStrings = {
   'members.addError': 'Nem sikerült hozzáadni',
   'members.removed': 'Tag eltávolítva',
   'members.removeError': 'Nem sikerült eltávolítani',
+  'members.makeOwner': 'Tulajdonossá tétel',
+  'members.confirmTransfer': 'Átruházza a tulajdonjogot {name} részére? Ön normál taggá válik.',
+  'members.transferError': 'A tulajdonjog átruházása sikertelen',
 };
 export default members;

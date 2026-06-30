@@ -20,5 +20,8 @@ const members: TranslationStrings = {
   'members.addError': 'Nepodařilo se přidat',
   'members.removed': 'Člen odebrán',
   'members.removeError': 'Nepodařilo se odebrat',
+  'members.makeOwner': 'Nastavit jako vlastníka',
+  'members.confirmTransfer': 'Převést vlastnictví na {name}? Stanete se běžným členem.',
+  'members.transferError': 'Převod vlastnictví se nezdařil',
 };
 export default members;

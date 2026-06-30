@@ -736,6 +736,54 @@ describe('Trip members', () => {
     expect(res.body.success).toBe(true);
   });
 
+  it('TRIP-TRANSFER-001 — owner hands the trip to a member; roles swap (#973)', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'Team Trip' });
+    addTripMember(testDb, trip.id, member.id);
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/transfer`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ newOwnerId: member.id });
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+
+    const row = testDb.prepare('SELECT user_id FROM trips WHERE id = ?').get(trip.id) as { user_id: number };
+    expect(row.user_id).toBe(member.id);
+    const memberRows = (testDb.prepare('SELECT user_id FROM trip_members WHERE trip_id = ?').all(trip.id) as { user_id: number }[]).map(r => r.user_id);
+    expect(memberRows).toContain(owner.id);
+    expect(memberRows).not.toContain(member.id);
+  });
+
+  it('TRIP-TRANSFER-002 — a non-owner cannot transfer ownership → 403', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'Team Trip' });
+    addTripMember(testDb, trip.id, member.id);
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/transfer`)
+      .set('Cookie', authCookie(member.id))
+      .send({ newOwnerId: member.id });
+
+    expect(res.status).toBe(403);
+  });
+
+  it('TRIP-TRANSFER-003 — cannot transfer to a non-member → 400', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'Team Trip' });
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/transfer`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ newOwnerId: stranger.id });
+
+    expect(res.status).toBe(400);
+  });
+
   it('TRIP-013 — Non-owner member cannot add other members when member_manage is trip_owner', async () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);

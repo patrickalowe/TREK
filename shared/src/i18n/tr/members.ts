@@ -20,5 +20,8 @@ const members: TranslationStrings = {
   'members.addError': 'Eklenemedi',
   'members.removed': 'Üye kaldırıldı',
   'members.removeError': 'Kaldırılamadı',
+  'members.makeOwner': 'Sahip yap',
+  'members.confirmTransfer': 'Sahipliği {name} kullanıcısına devret? Normal bir üye olacaksınız.',
+  'members.transferError': 'Sahiplik devredilemedi',
 };
 export default members;

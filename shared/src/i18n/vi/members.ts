@@ -20,5 +20,8 @@ const members: TranslationStrings = {
   'members.addError': 'Không thể thêm',
   'members.removed': 'Thành viên đã bị xóa',
   'members.removeError': 'Không thể xóa',
+  'members.makeOwner': 'Đặt làm chủ sở hữu',
+  'members.confirmTransfer': 'Chuyển quyền sở hữu cho {name}? Bạn sẽ trở thành thành viên thường.',
+  'members.transferError': 'Không thể chuyển quyền sở hữu',
 };
 export default members;

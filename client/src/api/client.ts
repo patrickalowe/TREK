@@ -15,7 +15,7 @@ import {
   type RegisterRequest, type LoginRequest, type ForgotPasswordRequest,
   type ResetPasswordRequest, type ChangePasswordRequest,
   type MfaVerifyLoginRequest, type MfaEnableRequest, type McpTokenCreateRequest,
-  type TripAddMemberRequest, type AssignmentReorderRequest,
+  type TripAddMemberRequest, type TripTransferOwnershipRequest, type AssignmentReorderRequest,
   type PackingReorderRequest, type PackingCreateBagRequest, type TodoReorderRequest,
   type TripCreateRequest, type TripUpdateRequest, type TripCopyRequest,
   type DayCreateRequest, type DayUpdateRequest, type DayReorderRequest,
@@ -340,6 +340,7 @@ export const tripsApi = {
   getMembers: (id: number | string) => apiClient.get(`/trips/${id}/members`).then(r => r.data),
   addMember: (id: number | string, identifier: string) => apiClient.post(`/trips/${id}/members`, { identifier } satisfies TripAddMemberRequest).then(r => r.data),
   removeMember: (id: number | string, userId: number) => apiClient.delete(`/trips/${id}/members/${userId}`).then(r => r.data),
+  transferOwnership: (id: number | string, newOwnerId: number) => apiClient.post(`/trips/${id}/transfer`, { newOwnerId } satisfies TripTransferOwnershipRequest).then(r => r.data),
   copy: (id: number | string, data?: TripCopyRequest) => apiClient.post(`/trips/${id}/copy`, data || {}).then(r => r.data),
   bundle: (id: number | string) => apiClient.get(`/trips/${id}/bundle`).then(r => r.data),
 }

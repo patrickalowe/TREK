@@ -92,3 +92,9 @@ export const tripAddMemberRequestSchema = z.object({
   identifier: z.string(),
 });
 export type TripAddMemberRequest = z.infer<typeof tripAddMemberRequestSchema>;
+
+// Hand the trip over to an existing member (#973).
+export const tripTransferOwnershipRequestSchema = z.object({
+  newOwnerId: z.number().int().positive(),
+});
+export type TripTransferOwnershipRequest = z.infer<typeof tripTransferOwnershipRequestSchema>;

@@ -33,8 +33,8 @@ vi.mock('../../../src/config', () => ({
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createReservation, createPlace, createDay, createDayAssignment, createDayNote } from '../../helpers/factories';
-import { exportICS, generateDays, deleteOldCover, updateTrip } from '../../../src/services/tripService';
+import { createUser, createTrip, createReservation, createPlace, createDay, createDayAssignment, createDayNote, addTripMember } from '../../helpers/factories';
+import { exportICS, generateDays, deleteOldCover, updateTrip, transferOwnership } from '../../../src/services/tripService';
 import fs from 'fs';
 
 beforeAll(() => {
@@ -505,5 +505,47 @@ describe('resyncReservationDays (#1288)', () => {
     updateTrip(trip.id, user.id, { start_date: '2025-06-10', end_date: '2025-06-14' }, 'user');
     const res = testDb.prepare('SELECT day_id FROM reservations WHERE id = ?').get(resId) as { day_id: number };
     expect(res.day_id).toBe(origDayId);
+  });
+});
+
+describe('transferOwnership (#973)', () => {
+  it('TRIP-SVC-020: hands the trip to a member and demotes the former owner to a member', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+
+    const result = transferOwnership(trip.id, member.id, owner.id);
+    expect(result.toEmail).toBe(member.email);
+
+    const updated = testDb.prepare('SELECT user_id FROM trips WHERE id = ?').get(trip.id) as { user_id: number };
+    expect(updated.user_id).toBe(member.id);
+
+    // New owner no longer sits in trip_members, former owner now does.
+    const memberIds = (testDb.prepare('SELECT user_id FROM trip_members WHERE trip_id = ?').all(trip.id) as { user_id: number }[]).map(r => r.user_id);
+    expect(memberIds).toContain(owner.id);
+    expect(memberIds).not.toContain(member.id);
+  });
+
+  it('TRIP-SVC-021: rejects a transfer from a non-owner', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    // member (not the owner) attempts the transfer
+    expect(() => transferOwnership(trip.id, member.id, member.id)).toThrow();
+  });
+
+  it('TRIP-SVC-022: rejects a transfer to someone who is not a member', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    expect(() => transferOwnership(trip.id, stranger.id, owner.id)).toThrow('New owner must be a trip member');
+  });
+
+  it('TRIP-SVC-023: rejects transferring to yourself', () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    expect(() => transferOwnership(trip.id, owner.id, owner.id)).toThrow('You already own this trip');
   });
 });

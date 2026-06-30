@@ -20,5 +20,8 @@ const members: TranslationStrings = {
   'members.addError': '追加に失敗しました',
   'members.removed': 'メンバーを削除しました',
   'members.removeError': '削除に失敗しました',
+  'members.makeOwner': 'オーナーにする',
+  'members.confirmTransfer': '所有権を {name} に移譲しますか？あなたは通常のメンバーになります。',
+  'members.transferError': '所有権の移譲に失敗しました',
 };
 export default members;

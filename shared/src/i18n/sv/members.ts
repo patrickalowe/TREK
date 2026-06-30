@@ -20,5 +20,8 @@ const members: TranslationStrings = {
   'members.addError': 'Kunde inte lägga till',
   'members.removed': 'Medlem borttagen',
   'members.removeError': 'Kunde inte ta bort',
+  'members.makeOwner': 'Gör till ägare',
+  'members.confirmTransfer': 'Överför ägarskapet till {name}? Du blir en vanlig medlem.',
+  'members.transferError': 'Det gick inte att överföra ägarskapet',
 };
 export default members;

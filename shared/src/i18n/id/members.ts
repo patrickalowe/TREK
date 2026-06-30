@@ -20,5 +20,8 @@ const members: TranslationStrings = {
   'members.addError': 'Gagal menambahkan',
   'members.removed': 'Anggota dihapus',
   'members.removeError': 'Gagal menghapus',
+  'members.makeOwner': 'Jadikan pemilik',
+  'members.confirmTransfer': 'Alihkan kepemilikan ke {name}? Anda akan menjadi anggota biasa.',
+  'members.transferError': 'Gagal mengalihkan kepemilikan',
 };
 export default members;

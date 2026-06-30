@@ -256,6 +256,41 @@ describe('TripsController (parity with the legacy /api/trips route)', () => {
     });
   });
 
+  describe('POST /:id/transfer (#973)', () => {
+    it('404 without trip access', () => {
+      const s = svc({ canAccessTrip: vi.fn().mockReturnValue(undefined) });
+      expect(thrown(() => new TripsController(s).transferOwnership(user, '9', 2, req))).toEqual({ status: 404, body: { error: 'Trip not found' } });
+    });
+
+    it('403 when the requester is not the owner', () => {
+      // access.user_id (5) differs from the requesting user (1)
+      const s = svc({ canAccessTrip: vi.fn().mockReturnValue({ user_id: 5 }) });
+      expect(thrown(() => new TripsController(s).transferOwnership(user, '9', 2, req))).toEqual({ status: 403, body: { error: 'Only the owner can transfer ownership' } });
+    });
+
+    it('400 when newOwnerId is not a number', () => {
+      const s = svc();
+      expect(thrown(() => new TripsController(s).transferOwnership(user, '9', 'nope' as unknown as number, req))).toEqual({ status: 400, body: { error: 'newOwnerId is required' } });
+    });
+
+    it('transfers, audits and broadcasts the refreshed trip', () => {
+      const transferOwnership = vi.fn().mockReturnValue({ tripTitle: 'Roadtrip', fromEmail: 'a@x.y', toEmail: 'b@x.y' });
+      const get = vi.fn().mockReturnValue({ id: 9, user_id: 2 });
+      const broadcast = vi.fn();
+      const s = svc({ transferOwnership, get, broadcast } as Partial<TripsService>);
+      expect(new TripsController(s).transferOwnership(user, '9', 2, req, 'sock')).toEqual({ success: true });
+      expect(transferOwnership).toHaveBeenCalledWith('9', 2, user.id);
+      expect(broadcast).toHaveBeenCalledWith('9', 'trip:updated', { trip: { id: 9, user_id: 2 } }, 'sock');
+    });
+
+    it('maps NotFoundError to 404 and ValidationError to 400', () => {
+      const nf = svc({ transferOwnership: vi.fn().mockImplementation(() => { throw new NotFoundError('User not found'); }) } as Partial<TripsService>);
+      expect(thrown(() => new TripsController(nf).transferOwnership(user, '9', 2, req))).toEqual({ status: 404, body: { error: 'User not found' } });
+      const ve = svc({ transferOwnership: vi.fn().mockImplementation(() => { throw new ValidationError('New owner must be a trip member'); }) } as Partial<TripsService>);
+      expect(thrown(() => new TripsController(ve).transferOwnership(user, '9', 2, req))).toEqual({ status: 400, body: { error: 'New owner must be a trip member' } });
+    });
+  });
+
   it('GET /:id/bundle 404 then aggregates', () => {
     expect(thrown(() => new TripsController(svc({ get: vi.fn().mockReturnValue(undefined) } as Partial<TripsService>)).bundle(user, '9'))).toEqual({ status: 404, body: { error: 'Trip not found' } });
     const bundle = vi.fn().mockReturnValue({ trip: { id: 9 }, days: [] });

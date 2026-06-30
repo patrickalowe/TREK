@@ -20,5 +20,8 @@ const members: TranslationStrings = {
   'members.addError': 'Αποτυχία προσθήκης',
   'members.removed': 'Το μέλος αφαιρέθηκε',
   'members.removeError': 'Αποτυχία αφαίρεσης',
+  'members.makeOwner': 'Ορισμός ως κάτοχο',
+  'members.confirmTransfer': 'Μεταβίβαση ιδιοκτησίας στον/στην {name}; Θα γίνετε απλό μέλος.',
+  'members.transferError': 'Αποτυχία μεταβίβασης ιδιοκτησίας',
 };
 export default members;

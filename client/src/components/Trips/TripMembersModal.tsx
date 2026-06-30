@@ -177,6 +177,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
   const [selectedUserId, setSelectedUserId] = useState('')
   const [adding, setAdding] = useState(false)
   const [removingId, setRemovingId] = useState(null)
+  const [transferringId, setTransferringId] = useState(null)
   const toast = useToast()
   const { user } = useAuthStore()
   const { t } = useTranslation()
@@ -224,6 +225,21 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
       toast.error(getApiErrorMessage(err, t('members.addError')))
     } finally {
       setAdding(false)
+    }
+  }
+
+  const handleTransfer = async (newOwnerId, username) => {
+    if (!confirm(t('members.confirmTransfer', { name: username }))) return
+    setTransferringId(newOwnerId)
+    try {
+      await tripsApi.transferOwnership(tripId, newOwnerId)
+      // The current user just dropped from owner to member — reload so the trip
+      // state and permissions everywhere reflect the new ownership.
+      onClose()
+      window.location.reload()
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, t('members.transferError')))
+      setTransferringId(null)
     }
   }
 
@@ -347,6 +363,18 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
                         )}
                       </div>
                     </div>
+                    {isCurrentOwner && member.role !== 'owner' && (
+                      <button
+                        onClick={() => handleTransfer(member.id, member.username)}
+                        disabled={transferringId === member.id}
+                        title={t('members.makeOwner')}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)', opacity: transferringId === member.id ? 0.4 : 1 }}
+                        onMouseEnter={e => e.currentTarget.style.color = '#d97706'}
+                        onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
+                      >
+                        <Crown size={14} />
+                      </button>
+                    )}
                     {canRemove && (
                       <button
                         onClick={() => handleRemove(member.id, isSelf)}

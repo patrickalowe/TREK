@@ -403,6 +403,48 @@ export function removeMember(tripId: string | number, targetUserId: number) {
   db.prepare('DELETE FROM trip_members WHERE trip_id = ? AND user_id = ?').run(tripId, targetUserId);
 }
 
+export interface TransferOwnershipResult {
+  tripTitle: string;
+  fromEmail: string;
+  toEmail: string;
+}
+
+/**
+ * Hand a trip over to one of its existing members (#973). The new owner must
+ * already be a member; afterwards they hold `trips.user_id` and the former owner
+ * becomes a regular member, so nobody loses access. Runs in a transaction so the
+ * owner pointer and the membership rows never diverge.
+ */
+export function transferOwnership(
+  tripId: string | number,
+  newOwnerId: number,
+  currentOwnerId: number,
+): TransferOwnershipResult {
+  const trip = db.prepare('SELECT id, title, user_id FROM trips WHERE id = ?').get(tripId) as { id: number; title: string; user_id: number } | undefined;
+  if (!trip) throw new NotFoundError('Trip not found');
+  if (trip.user_id !== currentOwnerId) throw new ValidationError('Only the owner can transfer ownership');
+  if (newOwnerId === currentOwnerId) throw new ValidationError('You already own this trip');
+
+  const newOwner = db.prepare('SELECT id, email FROM users WHERE id = ?').get(newOwnerId) as { id: number; email: string } | undefined;
+  if (!newOwner) throw new NotFoundError('User not found');
+
+  const isMember = db.prepare('SELECT id FROM trip_members WHERE trip_id = ? AND user_id = ?').get(tripId, newOwnerId);
+  if (!isMember) throw new ValidationError('New owner must be a trip member');
+
+  const fromEmail = (db.prepare('SELECT email FROM users WHERE id = ?').get(currentOwnerId) as { email: string } | undefined)?.email || '';
+
+  const run = db.transaction(() => {
+    db.prepare('UPDATE trips SET user_id = ? WHERE id = ?').run(newOwnerId, tripId);
+    // The new owner is no longer a plain member…
+    db.prepare('DELETE FROM trip_members WHERE trip_id = ? AND user_id = ?').run(tripId, newOwnerId);
+    // …and the former owner keeps access as a member.
+    db.prepare('INSERT OR IGNORE INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(tripId, currentOwnerId, newOwnerId);
+  });
+  run();
+
+  return { tripTitle: trip.title, fromEmail, toEmail: newOwner.email };
+}
+
 // ── ICS export ────────────────────────────────────────────────────────────
 
 // RFC 5545 §3.1: content lines longer than 75 octets must be folded with a CRLF

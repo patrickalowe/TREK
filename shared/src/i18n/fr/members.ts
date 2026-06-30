@@ -20,5 +20,8 @@ const members: TranslationStrings = {
   'members.addError': "Échec de l'ajout",
   'members.removed': 'Membre retiré',
   'members.removeError': 'Échec de la suppression',
+  'members.makeOwner': 'Définir comme propriétaire',
+  'members.confirmTransfer': 'Transférer la propriété à {name} ? Vous deviendrez un membre ordinaire.',
+  'members.transferError': 'Échec du transfert de propriété',
 };
 export default members;

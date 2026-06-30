@@ -279,6 +279,41 @@ export class TripsController {
     return { success: true };
   }
 
+  @Post(':id/transfer')
+  transferOwnership(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body('newOwnerId') newOwnerId: unknown,
+    @Req() req: Request,
+    @Headers('x-socket-id') socketId?: string,
+  ) {
+    const access = this.trips.canAccessTrip(id, user.id);
+    if (!access) {
+      throw new HttpException({ error: 'Trip not found' }, 404);
+    }
+    // Owner-only: handing over a trip is reserved for its actual owner, not just
+    // anyone who can manage members.
+    if (access.user_id !== user.id) {
+      throw new HttpException({ error: 'Only the owner can transfer ownership' }, 403);
+    }
+    if (typeof newOwnerId !== 'number') {
+      throw new HttpException({ error: 'newOwnerId is required' }, 400);
+    }
+    try {
+      const result = this.trips.transferOwnership(id, newOwnerId, user.id);
+      writeAudit({ userId: user.id, action: 'trip.transfer_ownership', ip: getClientIp(req), details: { tripId: Number(id), trip: result.tripTitle, from: result.fromEmail, to: result.toEmail } });
+      // Nudge everyone viewing the trip to re-read it so the new ownership and the
+      // recomputed permissions take effect live.
+      const updatedTrip = this.trips.get(id, user.id);
+      this.trips.broadcast(id, 'trip:updated', { trip: updatedTrip }, socketId);
+      return { success: true };
+    } catch (e: unknown) {
+      if (e instanceof NotFoundError) throw new HttpException({ error: e.message }, 404);
+      if (e instanceof ValidationError) throw new HttpException({ error: e.message }, 400);
+      throw e;
+    }
+  }
+
   @Get(':id/bundle')
   bundle(@CurrentUser() user: User, @Param('id') id: string) {
     const trip = this.trips.get(id, user.id) as { user_id: number } | undefined;
