@@ -66,6 +66,12 @@
 - [[Collections]]
 - [[Dashboard Widgets|Dashboard-Widgets]]
 
+## Plugins
+- [[Plugins Overview|Plugins]]
+- [[Plugin Development|Plugin-Development]]
+- [[Plugin Permissions|Plugin-Permissions]]
+- [[Publishing a Plugin|Plugin-Publishing]]
+
 ## AI / MCP
 - [[MCP Overview|MCP-Overview]]
 - [[MCP Setup|MCP-Setup]]
