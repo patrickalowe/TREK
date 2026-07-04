@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   Blocks, AlertTriangle, PackageOpen, RefreshCw, Trash2, Download, Bug, X, ShieldCheck,
   ArrowUpCircle, Github, ExternalLink, ChevronDown, Check, Lock, Search,
-  SlidersHorizontal, MoreHorizontal, RotateCw, ArrowRight, Database, Users, LayoutDashboard,
+  SlidersHorizontal, ArrowUpDown, CircleDot, MoreHorizontal, RotateCw, ArrowRight, Database, Users, LayoutDashboard,
   Radio, Luggage, Plane, Globe, Image, CalendarDays, Map, Bell, Cloud, Camera, Compass,
   BookOpen, Wallet, Puzzle,
 } from 'lucide-react'
@@ -267,7 +267,7 @@ export default function AdminPluginsPanel() {
       {/* Click-away layer for any open dropdown (filters or a row's ⋯ menu). */}
       {menu && <div className="fixed inset-0 z-20" onClick={() => setMenu(null)} />}
       {/* Header */}
-      <div className="px-6 pt-5">
+      <div className="px-4 sm:px-6 pt-5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h2 className="text-lg font-semibold tracking-tight text-content">{t('admin.plugins.title')}</h2>
@@ -283,7 +283,7 @@ export default function AdminPluginsPanel() {
 
       {/* Runtime-disabled notice */}
       {!runtimeOn && !loading && !error && (
-        <div className="mx-6 mt-4 p-4 rounded-xl border border-warning/30 bg-warning-soft flex items-start gap-3">
+        <div className="mx-4 sm:mx-6 mt-4 p-4 rounded-xl border border-warning/30 bg-warning-soft flex items-start gap-3">
           <AlertTriangle size={16} className="text-warning mt-0.5 shrink-0" />
           <div>
             <p className="text-sm font-medium text-content">{t('admin.plugins.disabledTitle')}</p>
@@ -292,15 +292,23 @@ export default function AdminPluginsPanel() {
         </div>
       )}
 
-      {/* Toolbar */}
+      {/* Toolbar — on mobile: tabs+rescan, then full-width search, then a
+          right-aligned filter row. On sm+ the wrappers collapse (sm:contents)
+          so everything sits in one wrapping row. */}
       {runtimeOn && !loading && !error && (
-        <div className="relative z-30 px-6 py-4 flex items-center gap-2.5 flex-wrap">
-          <div className="inline-flex bg-surface-tertiary border border-edge-secondary rounded-xl p-0.5 gap-0.5">
-            <SegBtn active={view === 'installed'} onClick={() => setView('installed')} label={t('admin.plugins.installed')} count={plugins.length} />
-            <SegBtn active={view === 'discover'} onClick={openDiscover} label={t('admin.plugins.tabDiscover')} count={registry?.length} />
+        <div className="relative z-30 px-4 sm:px-6 py-4 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2.5">
+          <div className="flex items-center justify-between gap-2.5 sm:contents">
+            <div className="inline-flex bg-surface-tertiary border border-edge-secondary rounded-xl p-0.5 gap-0.5">
+              <SegBtn active={view === 'installed'} onClick={() => setView('installed')} label={t('admin.plugins.installed')} count={plugins.length} />
+              <SegBtn active={view === 'discover'} onClick={openDiscover} label={t('admin.plugins.tabDiscover')} count={registry?.length} />
+            </div>
+            <button onClick={() => act('__rescan', adminApi.pluginRescan, t('admin.plugins.rescanned'))} title={t('admin.plugins.rescan')}
+              className="sm:hidden h-[38px] w-[38px] grid place-items-center rounded-xl border border-edge bg-surface-card text-content-muted hover:text-content hover:border-content-faint transition-colors shrink-0">
+              <RefreshCw size={15} />
+            </button>
           </div>
 
-          <div className="relative flex-1 min-w-[160px]">
+          <div className="relative w-full sm:flex-1 sm:min-w-[160px]">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-content-faint pointer-events-none" />
             <input
               value={q} onChange={e => setQ(e.target.value)} type="search"
@@ -309,33 +317,35 @@ export default function AdminPluginsPanel() {
             />
           </div>
 
-          <FilterMenu id="type" label={t('admin.plugins.filterType')} value={typeFilter} menu={menu} setMenu={setMenu} icon={<SlidersHorizontal size={14} />}
-            options={[
-              ['all', t('admin.plugins.allTypes')], ['widget', t('admin.plugins.type.widget')],
-              ['integration', t('admin.plugins.type.integration')], ['page', t('admin.plugins.type.page')],
-            ]}
-            valueLabel={typeFilter === 'all' ? t('admin.plugins.allTypes') : t(`admin.plugins.type.${typeFilter}` as never)}
-            onPick={v => setTypeFilter(v as TypeFilter)} />
-
-          {view === 'installed' && (
-            <FilterMenu id="status" label={t('admin.plugins.filterStatus')} value={statusFilter} menu={menu} setMenu={setMenu}
+          <div className="flex items-center justify-end gap-2 sm:gap-2.5 sm:contents">
+            <FilterMenu id="type" label={t('admin.plugins.filterType')} value={typeFilter} menu={menu} setMenu={setMenu} icon={<SlidersHorizontal size={14} />}
               options={[
-                ['all', t('admin.plugins.allStatuses')], ['on', t('admin.plugins.status.active')], ['off', t('admin.plugins.stateOff')],
-                ['update', t('admin.plugins.filterUpdate')], ['err', t('admin.plugins.status.error')],
+                ['all', t('admin.plugins.allTypes')], ['widget', t('admin.plugins.type.widget')],
+                ['integration', t('admin.plugins.type.integration')], ['page', t('admin.plugins.type.page')],
               ]}
-              valueLabel={statusLabel(statusFilter, t)}
-              onPick={v => setStatusFilter(v as StatusFilter)} />
-          )}
+              valueLabel={typeFilter === 'all' ? t('admin.plugins.allTypes') : t(`admin.plugins.type.${typeFilter}` as never)}
+              onPick={v => setTypeFilter(v as TypeFilter)} />
 
-          <FilterMenu id="sort" label={t('admin.plugins.sortBy')} value={sort} menu={menu} setMenu={setMenu}
-            options={[['name', t('admin.plugins.sortName')], ['recent', t('admin.plugins.sortRecent')], ['updates', t('admin.plugins.sortUpdates')]]}
-            valueLabel={sortLabel(sort, t)}
-            onPick={v => setSort(v as SortKey)} />
+            {view === 'installed' && (
+              <FilterMenu id="status" label={t('admin.plugins.filterStatus')} value={statusFilter} menu={menu} setMenu={setMenu} icon={<CircleDot size={14} />}
+                options={[
+                  ['all', t('admin.plugins.allStatuses')], ['on', t('admin.plugins.status.active')], ['off', t('admin.plugins.stateOff')],
+                  ['update', t('admin.plugins.filterUpdate')], ['err', t('admin.plugins.status.error')],
+                ]}
+                valueLabel={statusLabel(statusFilter, t)}
+                onPick={v => setStatusFilter(v as StatusFilter)} />
+            )}
 
-          <button onClick={() => act('__rescan', adminApi.pluginRescan, t('admin.plugins.rescanned'))} title={t('admin.plugins.rescan')}
-            className="h-[38px] w-[38px] grid place-items-center rounded-xl border border-edge bg-surface-card text-content-muted hover:text-content hover:border-content-faint transition-colors">
-            <RefreshCw size={15} />
-          </button>
+            <FilterMenu id="sort" label={t('admin.plugins.sortBy')} value={sort} menu={menu} setMenu={setMenu} icon={<ArrowUpDown size={14} />}
+              options={[['name', t('admin.plugins.sortName')], ['recent', t('admin.plugins.sortRecent')], ['updates', t('admin.plugins.sortUpdates')]]}
+              valueLabel={sortLabel(sort, t)}
+              onPick={v => setSort(v as SortKey)} />
+
+            <button onClick={() => act('__rescan', adminApi.pluginRescan, t('admin.plugins.rescanned'))} title={t('admin.plugins.rescan')}
+              className="hidden sm:grid h-[38px] w-[38px] place-items-center rounded-xl border border-edge bg-surface-card text-content-muted hover:text-content hover:border-content-faint transition-colors">
+              <RefreshCw size={15} />
+            </button>
+          </div>
         </div>
       )}
 
@@ -351,9 +361,9 @@ export default function AdminPluginsPanel() {
         ) : plugins.length === 0 ? (
           <EmptyState t={t} onDiscover={openDiscover} />
         ) : (
-          <div className="px-3">
+          <div className="px-2 sm:px-3">
             {updatable.length > 0 && statusFilter !== 'err' && (
-              <div className="mx-3 mb-2 mt-1 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-warning-soft border border-warning/30">
+              <div className="mx-1.5 sm:mx-3 mb-2 mt-1 flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-warning-soft border border-warning/30">
                 <ArrowUpCircle size={16} className="text-warning shrink-0" />
                 <span className="text-xs text-content-secondary">{t('admin.plugins.updatesAvailable', { count: updatable.length })}</span>
                 <button onClick={() => updatable.forEach(runUpdate)}
@@ -465,12 +475,12 @@ function FilterMenu({ id, label, valueLabel, options, onPick, value, menu, setMe
   return (
     <div className="relative">
       <button onClick={() => setMenu(open ? null : id)}
-        className="h-[38px] px-3 inline-flex items-center gap-1.5 rounded-xl border border-edge bg-surface-card text-[13px] text-content-secondary hover:border-content-faint transition-colors whitespace-nowrap">
-        {icon}{label}: <span className="font-semibold text-content">{valueLabel}</span>
+        className="h-[38px] px-2.5 sm:px-3 inline-flex items-center gap-1.5 rounded-xl border border-edge bg-surface-card text-[13px] text-content-secondary hover:border-content-faint transition-colors whitespace-nowrap">
+        {icon}<span className="hidden sm:inline">{label}: </span><span className="font-semibold text-content">{valueLabel}</span>
         <ChevronDown size={13} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute top-11 right-0 z-30 min-w-[180px] p-1.5 rounded-xl border border-edge bg-surface-card shadow-elevated">
+        <div className="absolute top-11 right-0 z-30 min-w-[180px] max-w-[calc(100vw-2rem)] p-1.5 rounded-xl border border-edge bg-surface-card shadow-elevated">
           {options.map(([v, lbl]) => (
             <button key={v} onClick={() => { onPick(v); setMenu(null) }}
               className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] transition-colors hover:bg-surface-tertiary ${
@@ -506,7 +516,7 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
   const caps = deriveCaps(parseJson<string[]>(p.permissions, []), parseJson<{ widget?: { slot?: string } }>(p.capabilities, {}), t)
   const menuOpen = menu === `row:${p.id}`
   return (
-    <div className="group relative flex items-center gap-4 px-3 py-3.5 rounded-2xl hover:bg-surface-secondary transition-colors">
+    <div className="group relative flex items-center gap-3 sm:gap-4 px-2.5 sm:px-3 py-3.5 rounded-2xl hover:bg-surface-secondary transition-colors">
       <div className="relative shrink-0">
         <div className="w-[46px] h-[46px] rounded-[13px] grid place-items-center bg-surface-tertiary border border-edge-secondary">
           <PluginIcon name={p.icon} size={22} className="text-content-secondary" />
@@ -538,11 +548,11 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, onToggl
         )}
       </div>
 
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         {hasUpdate && (
-          <button onClick={onUpdate} disabled={busy === p.id}
-            className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-2.5 py-1.5 rounded-full text-warning bg-warning-soft border border-warning/30 hover:opacity-90 transition-opacity disabled:opacity-50">
-            <ArrowUpCircle size={13} /> {t('admin.plugins.updateTo', { version: latestVer })}
+          <button onClick={onUpdate} disabled={busy === p.id} title={t('admin.plugins.updateTo', { version: latestVer })}
+            className="inline-flex items-center gap-1.5 text-[11.5px] font-semibold px-2 sm:px-2.5 py-1.5 rounded-full text-warning bg-warning-soft border border-warning/30 hover:opacity-90 transition-opacity disabled:opacity-50">
+            <ArrowUpCircle size={13} /> <span className="hidden sm:inline">{t('admin.plugins.updateTo', { version: latestVer })}</span>
           </button>
         )}
         <span className={`hidden sm:inline text-xs font-medium min-w-[42px] text-right ${p.enabled === 1 && p.status !== 'error' ? 'text-content-secondary' : 'text-content-faint'}`}>
@@ -618,7 +628,7 @@ function RegistryGrid({ items, onInstall, onOpenDetail, busy, t, installedIds, f
     </div>
   )
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 px-6 pb-5 pt-1">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4 px-4 sm:px-6 pb-5 pt-1">
       {items.map(item => {
         const installed = installedIds.has(item.id)
         return (
@@ -694,7 +704,7 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
           <button onClick={onClose} className="absolute top-3 right-3 w-8 h-8 grid place-items-center rounded-lg bg-black/40 text-white hover:bg-black/60 transition-colors"><X size={16} /></button>
         </div>
 
-        <div className="flex items-start gap-3.5 px-5 -mt-7 relative z-[1]">
+        <div className="flex items-start gap-3 sm:gap-3.5 px-4 sm:px-5 -mt-7 relative z-[1]">
           <div className="w-14 h-14 rounded-[15px] bg-surface-card border border-edge grid place-items-center shadow-card shrink-0">
             <PluginIcon name={manifest?.icon ?? null} size={28} className="text-content-secondary" />
           </div>
@@ -706,12 +716,12 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
             <p className="text-[12.5px] text-content-faint mt-0.5">{item.author}{item.latest ? ` · v${item.latest}` : ''}</p>
           </div>
           <button onClick={() => onInstall(item.id)} disabled={busy === item.id || installed}
-            className="self-end text-[13px] font-semibold px-4 py-2 rounded-lg bg-accent text-accent-text hover:bg-accent-hover disabled:opacity-50 disabled:bg-surface-tertiary disabled:text-content-faint transition-colors shrink-0">
+            className="self-end text-[13px] font-semibold px-3 sm:px-4 py-2 rounded-lg bg-accent text-accent-text hover:bg-accent-hover disabled:opacity-50 disabled:bg-surface-tertiary disabled:text-content-faint transition-colors shrink-0">
             {installed ? t('admin.plugins.installed') : t('admin.plugins.install')}
           </button>
         </div>
 
-        <div className="px-5 pt-4 pb-5">
+        <div className="px-4 sm:px-5 pt-4 pb-5">
           <p className="text-[13.5px] text-content-secondary leading-relaxed">{item.description}</p>
           {failed && <p className="text-xs text-danger mt-3">{t('admin.plugins.detailError')}</p>}
 
@@ -774,7 +784,7 @@ function PluginDetailModal({ item, installed, busy, onInstall, onClose, t, local
           </div>
         </div>
 
-        <div className="flex items-center gap-2 px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary">
+        <div className="flex items-center gap-2 px-4 sm:px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary">
           <a href={repoUrl} target="_blank" rel="noreferrer"
             className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-edge bg-surface-card text-content-secondary hover:text-content hover:border-content-faint transition-colors">
             <Github size={13} /> {t('admin.plugins.sourceRepo')}
@@ -852,17 +862,17 @@ function SecurityInfo({ t }: { t: T }) {
   ]
   return (
     <div className="border-t border-edge-secondary bg-surface-secondary rounded-b-2xl overflow-hidden">
-      <div className="px-6 py-3.5 flex items-start gap-2">
+      <div className="px-4 sm:px-6 py-3.5 flex items-start gap-2">
         <ShieldCheck size={14} className="text-content-faint shrink-0 mt-0.5" />
         <p className="text-xs text-content-muted">{t('admin.plugins.reviewedMeaning')}</p>
       </div>
       <button onClick={() => setOpen(o => !o)}
-        className="w-full px-6 py-2.5 border-t border-edge-secondary flex items-center justify-between gap-2 text-xs font-medium text-content-secondary hover:text-content hover:bg-surface-tertiary transition-colors">
-        <span className="flex items-center gap-2"><Lock size={13} /> {t('admin.plugins.security.title')}</span>
-        <ChevronDown size={15} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+        className="w-full px-4 sm:px-6 py-2.5 border-t border-edge-secondary flex items-center justify-between gap-2 text-xs font-medium text-content-secondary hover:text-content hover:bg-surface-tertiary transition-colors">
+        <span className="flex items-center gap-2"><Lock size={13} className="shrink-0" /> <span className="text-left">{t('admin.plugins.security.title')}</span></span>
+        <ChevronDown size={15} className={`shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="px-6 py-4 border-t border-edge-secondary grid gap-x-8 gap-y-4 sm:grid-cols-2">
+        <div className="px-4 sm:px-6 py-4 border-t border-edge-secondary grid gap-x-8 gap-y-4 sm:grid-cols-2">
           {sections.map(([h, b]) => (
             <div key={h}>
               <h4 className="text-[12.5px] font-semibold text-content">{t(h as never)}</h4>
