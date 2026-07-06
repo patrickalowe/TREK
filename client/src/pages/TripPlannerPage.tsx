@@ -27,6 +27,7 @@ import ApplyTemplateButton from '../components/Packing/ApplyTemplateButton'
 import TodoListPanel from '../components/Todo/TodoListPanel'
 import FileManager from '../components/Files/FileManager'
 import CostsPanel, { ExpenseModal, type ExpensePrefill } from '../components/Budget/CostsPanel'
+import PhotosPanel from '../components/Photos/PhotosPanel'
 import type { BookingExpenseRequest } from '../components/Planner/BookingCostsSection.types'
 import type { BudgetItem } from '../types'
 import CollabPanel from '../components/Collab/CollabPanel'
@@ -707,6 +708,12 @@ export default function TripPlannerPage(): React.ReactElement | null {
               tripId={tripId}
               allowedFileTypes={allowedFileTypes}
             />
+          </div>
+        )}
+
+        {activeTab === 'fotos' && (
+          <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', width: '100%', paddingBottom: 'var(--bottom-nav-h)' }}>
+            <PhotosPanel tripId={tripId} trip={trip} canEdit={can('trip_edit', trip)} />
           </div>
         )}
 

@@ -11,6 +11,7 @@ const trip: TranslationStrings = {
   'trip.tabs.listsShort': 'Lists',
   'trip.tabs.budget': 'Costs',
   'trip.tabs.files': 'Files',
+  'trip.tabs.photos': 'Photos',
   'trip.loading': 'Loading trip...',
   'trip.loadingPhotos': 'Loading place photos...',
   'trip.mobilePlan': 'Plan',

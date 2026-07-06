@@ -30,6 +30,7 @@ import { writeAudit, getClientIp, logInfo } from '../../services/auditLog';
 import { isDemoEmail } from '../../services/demo';
 import { NotFoundError, ValidationError } from '../../services/tripService';
 import { saveUnsplashCover, isUnsplashCoverUrl } from '../../services/unsplashService';
+import { fetchAlbum } from '../../services/icloudSharedAlbum';
 
 const MAX_COVER_SIZE = 20 * 1024 * 1024;
 const coversDir = path.join(__dirname, '../../../uploads/covers');
@@ -120,6 +121,28 @@ export class TripsController {
     return { trip };
   }
 
+  /**
+   * Live-fetch the trip's linked iCloud public shared album. Returns the photo
+   * list with short-lived signed image URLs (Apple CDN) the client renders
+   * directly. Declared before other ':id/*' routes; scoped by trip access.
+   */
+  @Get(':id/photos')
+  async photos(@CurrentUser() user: User, @Param('id') id: string) {
+    const trip = this.trips.get(id, user.id) as { icloud_album_url?: string | null } | null;
+    if (!trip) {
+      throw new HttpException({ error: 'Trip not found' }, 404);
+    }
+    if (!trip.icloud_album_url) {
+      return { album: null };
+    }
+    try {
+      const album = await fetchAlbum(trip.icloud_album_url);
+      return { album };
+    } catch (e: unknown) {
+      throw new HttpException({ error: e instanceof Error ? e.message : 'Could not load album' }, 502);
+    }
+  }
+
   @Put(':id')
   async update(@CurrentUser() user: User, @Param('id') id: string, @Body() body: Record<string, unknown>, @Req() req: Request, @Headers('x-socket-id') socketId?: string) {
     const access = this.trips.canAccessTrip(id, user.id);
@@ -134,7 +157,7 @@ export class TripsController {
     if (body.cover_image !== undefined && !this.trips.can('trip_cover_upload', user.role, ownerId, user.id, isMember)) {
       throw new HttpException({ error: 'No permission to change cover image' }, 403);
     }
-    const editFields = ['title', 'description', 'start_date', 'end_date', 'currency', 'reminder_days', 'day_count'];
+    const editFields = ['title', 'description', 'start_date', 'end_date', 'currency', 'reminder_days', 'day_count', 'icloud_album_url'];
     if (editFields.some((f) => body[f] !== undefined) && !this.trips.can('trip_edit', user.role, ownerId, user.id, isMember)) {
       throw new HttpException({ error: 'No permission to edit this trip' }, 403);
     }

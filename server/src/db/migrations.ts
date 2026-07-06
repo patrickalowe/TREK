@@ -3495,6 +3495,16 @@ function runMigrations(db: Database.Database): void {
         if (!err.message?.includes('duplicate column name')) throw err;
       }
     },
+
+    // Per-trip iCloud public shared-album link. Powers the Photos tab, which
+    // fetches the album live from Apple's sharedstreams API.
+    () => {
+      try {
+        db.exec('ALTER TABLE trips ADD COLUMN icloud_album_url TEXT');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {

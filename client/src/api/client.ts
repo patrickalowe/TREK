@@ -332,6 +332,7 @@ export const tripsApi = {
   list: (params?: Record<string, unknown>) => apiClient.get('/trips', { params }).then(r => r.data),
   create: (data: TripCreateRequest) => apiClient.post('/trips', data).then(r => r.data),
   get: (id: number | string) => apiClient.get(`/trips/${id}`).then(r => r.data),
+  photos: (id: number | string) => apiClient.get(`/trips/${id}/photos`).then(r => r.data),
   update: (id: number | string, data: TripUpdateRequest) => apiClient.put(`/trips/${id}`, data).then(r => r.data),
   delete: (id: number | string) => apiClient.delete(`/trips/${id}`).then(r => r.data),
   uploadCover: (id: number | string, formData: FormData) => apiClient.post(`/trips/${id}/cover`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data),
