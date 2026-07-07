@@ -137,7 +137,7 @@ export default function DashboardPage(): React.ReactElement {
           styling instead of inheriting the dashboard scope's font and the
           `.yipyip-dash button` reset (which shifted the bell icon + menu items). */}
       <Navbar />
-      <div className="yipyip-dash yipyip-dash-shell">
+      <div className="yipyip-dash yipyip-dash-shell aurora-ambient">
       {demoMode && <DemoBanner />}
       <div className="yipyip-dash-scroll">
         <MobileTopBar />

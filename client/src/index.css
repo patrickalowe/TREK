@@ -450,7 +450,7 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --safe-top: env(safe-area-inset-top, 0px);
   --nav-h: 0px;
   --bottom-nav-h: 0px;
-  --font-system: 'Poppins', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  --font-system: 'Plus Jakarta Sans', 'Poppins', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
   /* Secondary "subtext"/caption tier renders in Geist; primary text + headings stay Poppins. */
   --font-subtext: 'Geist Sans', 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --sp-1: 4px;
@@ -465,39 +465,41 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --shadow-card: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
   --shadow-elevated: 0 4px 16px rgba(0,0,0,0.1);
 
-  /* Theme colors */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8fafc;
-  --bg-tertiary: #f1f5f9;
-  --bg-elevated: rgba(250,250,250,0.82);
-  --bg-card: #ffffff;
-  --bg-input: #ffffff;
-  --bg-hover: rgba(0,0,0,0.03);
-  --bg-selected: #e2e8f0;
-  --text-primary: #111827;
-  --text-secondary: #374151;
-  --text-muted: #6b7280;
-  --text-faint: #9ca3af;
-  --border-primary: #e5e7eb;
-  --border-secondary: #f3f4f6;
-  --border-faint: rgba(0,0,0,0.06);
-  --accent: #111827;
+  /* Theme colors — Aurora: warm luminous neutrals, adventure-orange accent,
+     map-teal informational color. Light surfaces carry a faint sunrise tint;
+     text stays warm near-black for AA contrast. */
+  --bg-primary: #fffdf9;
+  --bg-secondary: #faf6ef;
+  --bg-tertiary: #f6efe4;
+  --bg-elevated: rgba(255,251,244,0.82);
+  --bg-card: #fffefb;
+  --bg-input: #fffefb;
+  --bg-hover: rgba(234,88,12,0.05);
+  --bg-selected: #fbeadb;
+  --text-primary: #1c1410;
+  --text-secondary: #44362c;
+  --text-muted: #6f6053;
+  --text-faint: #a3927f;
+  --border-primary: #ecdfd0;
+  --border-secondary: #f6ede1;
+  --border-faint: rgba(93,58,20,0.08);
+  --accent: #ea580c;
   --accent-text: #ffffff;
-  --sidebar-bg: rgba(250,250,250,0.82);
-  --sidebar-shadow: 0 4px 32px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.06);
-  --tooltip-bg: rgba(255,255,255,0.96);
-  --scrollbar-track: #f1f5f9;
-  --scrollbar-thumb: #d1d5db;
-  --scrollbar-hover: #9ca3af;
+  --sidebar-bg: rgba(255,251,244,0.82);
+  --sidebar-shadow: 0 4px 32px rgba(93,58,20,0.10), 0 0 0 1px rgba(93,58,20,0.06);
+  --tooltip-bg: rgba(255,254,251,0.96);
+  --scrollbar-track: #f6efe4;
+  --scrollbar-thumb: #d8c9b8;
+  --scrollbar-hover: #b09a85;
 
   /* ── Extended semantic tokens (appearance platform) ──────────────
      Accent variants + status/shadow/overlay/inverse + per-tier type scales.
      Additive: nothing consumes these until components migrate to them, so
      defining them is visually inert. Colored schemes override --accent* via
      [data-scheme]; status/shadow/inverse stay scheme-independent. */
-  --accent-on: var(--accent);       /* accent as text/icon/border on a surface */
-  --accent-hover: #1f2937;          /* hover state of an accent fill */
-  --accent-subtle: #f1f5f9;         /* faint accent-tinted surface (chips, selected) */
+  --accent-on: #c2410c;             /* accent as text/icon/border on a surface (AA on warm white) */
+  --accent-hover: #c2410c;          /* hover state of an accent fill */
+  --accent-subtle: #ffedd5;         /* faint accent-tinted surface (chips, selected) */
 
   --fs-scale-title: 1;
   --fs-scale-subtitle: 1;
@@ -507,9 +509,9 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --success: #16a34a;  --success-soft: #dcfce7;
   --danger:  #dc2626;  --danger-soft:  #fef2f2;
   --warning: #d97706;  --warning-soft: #fffbeb;
-  --info:    #2563eb;  --info-soft:    #eff6ff;
+  --info:    #0e7490;  --info-soft:    #ecfeff;
 
-  --bg-inverse: #111827;  --text-inverse: #ffffff;
+  --bg-inverse: #1c1410;  --text-inverse: #fffdf9;
   --overlay: rgba(0, 0, 0, 0.5);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -523,7 +525,7 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --journal-bg: #FAFAFA;
   --journal-card: #FFFFFF;
   --journal-border: #E4E4E7;
-  --journal-accent: #6366F1;
+  --journal-accent: #EA580C;
   --journal-text: #09090B;
   --journal-muted: #71717A;
   --journal-faint: #A1A1AA;
@@ -543,41 +545,43 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
 }
 
 .dark {
-  --bg-primary: #121215;
-  --bg-secondary: #1a1a1e;
-  --bg-tertiary: #1c1c21;
-  --bg-elevated: rgba(19,19,22,0.82);
-  --bg-card: #131316;
-  --bg-input: #1c1c21;
+  /* Aurora dark: desaturated warm charcoals (not inverted light values) with a
+     luminous orange-400 accent — dark text on the accent fill for AA contrast. */
+  --bg-primary: #151210;
+  --bg-secondary: #1c1815;
+  --bg-tertiary: #201b17;
+  --bg-elevated: rgba(22,18,15,0.82);
+  --bg-card: #171310;
+  --bg-input: #201b17;
   --bg-hover: rgba(255,255,255,0.06);
-  --bg-selected: rgba(255,255,255,0.1);
-  --text-primary: #f4f4f5;
-  --text-secondary: #d4d4d8;
-  --text-muted: #a1a1aa;
-  --text-faint: #71717a;
-  --border-primary: #27272a;
-  --border-secondary: #1c1c21;
+  --bg-selected: rgba(251,146,60,0.14);
+  --text-primary: #f5f1ec;
+  --text-secondary: #d9d0c7;
+  --text-muted: #a69a8d;
+  --text-faint: #78695c;
+  --border-primary: #2c251f;
+  --border-secondary: #201b17;
   --border-faint: rgba(255,255,255,0.07);
-  --accent: #e4e4e7;
-  --accent-text: #09090b;
-  --sidebar-bg: rgba(19,19,22,0.82);
+  --accent: #fb923c;
+  --accent-text: #251103;
+  --sidebar-bg: rgba(22,18,15,0.82);
   --sidebar-shadow: 0 4px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05);
-  --tooltip-bg: rgba(19,19,22,0.96);
-  --scrollbar-track: #131316;
-  --scrollbar-thumb: #3f3f46;
-  --scrollbar-hover: #52525b;
+  --tooltip-bg: rgba(22,18,15,0.96);
+  --scrollbar-track: #171310;
+  --scrollbar-thumb: #4a4038;
+  --scrollbar-hover: #5f5347;
 
   /* Extended semantic tokens (dark) */
-  --accent-on: var(--accent);
-  --accent-hover: #d4d4d8;
-  --accent-subtle: rgba(255, 255, 255, 0.08);
+  --accent-on: #fdba74;
+  --accent-hover: #f97316;
+  --accent-subtle: rgba(251, 146, 60, 0.16);
 
   --success: #22c55e;  --success-soft: rgba(34, 197, 94, 0.15);
   --danger:  #ef4444;  --danger-soft:  rgba(239, 68, 68, 0.15);
   --warning: #f59e0b;  --warning-soft: rgba(245, 158, 11, 0.15);
-  --info:    #3b82f6;  --info-soft:    rgba(59, 130, 246, 0.15);
+  --info:    #22d3ee;  --info-soft:    rgba(6, 182, 212, 0.15);
 
-  --bg-inverse: #e4e4e7;  --text-inverse: #09090b;
+  --bg-inverse: #f5f1ec;  --text-inverse: #1c1410;
   --overlay: rgba(0, 0, 0, 0.6);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -591,7 +595,7 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --journal-bg: #09090B;
   --journal-card: #18181B;
   --journal-border: #27272A;
-  --journal-accent: #818CF8;
+  --journal-accent: #FB923C;
   --journal-text: #FAFAFA;
   --journal-muted: #A1A1AA;
   --journal-faint: #52525B;
@@ -600,6 +604,49 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --mood-neutral: #9a9a94;
   --mood-tired: #6db3f0;
   --mood-rough: #a9a3f0;
+}
+
+/* ── Aurora ambient background ─────────────────────────────────────
+   Brand atmosphere: two slow-drifting blurred color fields (adventure
+   orange + map teal) layered behind the content. Pure decoration —
+   pointer-events off, z-index -1 behind an isolated stacking context,
+   and static under prefers-reduced-motion. */
+.aurora-ambient { position: relative; isolation: isolate; overflow: hidden; }
+.aurora-ambient::before,
+.aurora-ambient::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+}
+.aurora-ambient::before {
+  width: 55vmax; height: 55vmax; top: -18vmax; right: -12vmax;
+  background: radial-gradient(circle at 30% 30%, rgba(234,88,12,0.16), rgba(217,119,6,0.08) 45%, transparent 70%);
+  animation: aurora-drift-a 12s ease-in-out infinite alternate;
+}
+.aurora-ambient::after {
+  width: 48vmax; height: 48vmax; bottom: -16vmax; left: -10vmax;
+  background: radial-gradient(circle at 70% 70%, rgba(8,145,178,0.14), rgba(99,102,241,0.06) 50%, transparent 72%);
+  animation: aurora-drift-b 14s ease-in-out infinite alternate;
+}
+.dark .aurora-ambient::before {
+  background: radial-gradient(circle at 30% 30%, rgba(251,146,60,0.13), rgba(217,119,6,0.05) 45%, transparent 70%);
+}
+.dark .aurora-ambient::after {
+  background: radial-gradient(circle at 70% 70%, rgba(34,211,238,0.10), rgba(129,140,248,0.05) 50%, transparent 72%);
+}
+@keyframes aurora-drift-a {
+  from { transform: translate3d(0,0,0) scale(1); }
+  to   { transform: translate3d(-6vmax,4vmax,0) scale(1.08); }
+}
+@keyframes aurora-drift-b {
+  from { transform: translate3d(0,0,0) scale(1); }
+  to   { transform: translate3d(5vmax,-3vmax,0) scale(1.06); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aurora-ambient::before, .aurora-ambient::after { animation: none; }
 }
 
 /* ── Color schemes (data-scheme) ──────────────────────────────────

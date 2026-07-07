@@ -266,9 +266,9 @@ export default function LoginPage(): React.ReactElement {
           ))}
         </div>
 
-        {/* Animated glow orbs */}
-        <div className="login-orb1" style={{ position: 'absolute', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)', filter: 'blur(80px)' }} />
-        <div className="login-orb2" style={{ position: 'absolute', width: 350, height: 350, borderRadius: '50%', background: 'radial-gradient(circle, rgba(14,165,233,0.08) 0%, transparent 70%)', filter: 'blur(60px)' }} />
+        {/* Animated glow orbs — aurora: adventure orange + map teal */}
+        <div className="login-orb1" style={{ position: 'absolute', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(234,88,12,0.14) 0%, transparent 70%)', filter: 'blur(80px)' }} />
+        <div className="login-orb2" style={{ position: 'absolute', width: 350, height: 350, borderRadius: '50%', background: 'radial-gradient(circle, rgba(8,145,178,0.11) 0%, transparent 70%)', filter: 'blur(60px)' }} />
 
         {/* Animated planes — realistic silhouettes at different sizes/speeds */}
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>

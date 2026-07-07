@@ -8,9 +8,9 @@
    ============================================================================ */
 
 .yipyip-dash {
-  /* warm light palette (design original) */
-  --bg: #f8fafc;
-  --bg-2: oklch(0.965 0.01 70);
+  /* warm light palette (aurora sunrise tint) */
+  --bg: #faf6ef;
+  --bg-2: oklch(0.965 0.012 68);
   --surface: #ffffff;
   --surface-2: oklch(0.985 0.006 78);
   --ink: oklch(0.22 0.012 65);

@@ -165,7 +165,7 @@ export default function CollectionsPage(): React.ReactElement {
   return (
     <>
       <Navbar />
-      <div className="yipyip-dash col-root">
+      <div className="yipyip-dash col-root aurora-ambient">
         <div className="col-page">
           <aside className="col-rail" style={{ minHeight: c.heroHeight || undefined }}>{rail}</aside>
 
