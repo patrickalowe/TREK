@@ -80,9 +80,8 @@ ran on users' databases**. Rewriting historical DDL would break partially-migrat
 ### 5. Build + test verification ✅
 - **Build:** `npm run build` (shared → server → client) **passes** cleanly.
 - **Shared tests:** 32 files / **136 passed**.
-- **Server tests:** **4698 passed / 1 failed** — the failure (`TRIP-SVC-015` in
-  `tripService.test.ts`) is **pre-existing and unrelated**: it fails identically against
-  the original `migrations.ts`, and neither that source nor its test was touched.
+- **Server tests:** **4699 passed / 4699** — one pre-existing, rename-unrelated failure
+  (`TRIP-SVC-015`) was diagnosed and fixed afterwards; see section 7.
 - **Client tests:** **180 files / 3084 passed** (38 skipped) — all green.
 
 ### 6. Client i18n parity fix ✅
@@ -110,8 +109,24 @@ Greek). Placeholders (`{source}`, `{count}`) preserved.
   cookies, and env-var names all change, so users must re-authenticate and update their
   deployment env/config (`TREK_*` → `YIPYIP_*`).
 
-## Remaining work
+### 7. Pre-existing TRIP-SVC-015 fix ✅
+`TRIP-SVC-015` (server `tripService.test.ts`) was a timezone bug in the **test factory**,
+not in product code: `createTrip` in `tests/helpers/factories.ts` parsed `'YYYY-MM-DD'`
+bounds as UTC midnight but stepped its day loop with local-time `setDate()`. When the
+range crosses a DST fall-back in the host timezone (the test's Nov 1–3 2025 range crosses
+the US fall-back in `America/Los_Angeles`), the extra hour overshoots the UTC end
+boundary and the last day is silently dropped — failing locally but never on UTC CI.
+Fixed by stepping with `setUTCDate()`, mirroring production `generateDays` (already
+DST-immune via pure `Date.UTC` arithmetic). Verified under `America/Los_Angeles`, `UTC`,
+and `Australia/Sydney`.
 
-1. Decide whether the pre-existing `TRIP-SVC-015` server test failure is in scope (it is
-   not a rename regression — it fails identically on the untouched original code).
-2. Nothing has been committed yet — all changes are in the working tree on `main`.
+## Status: complete ✅
+
+All work is committed on `main` (not pushed):
+
+- `ded5b3bc` `feat!: rebrand TREK to yipyip` — the full rename + i18n parity fix
+- `20a00335` `fix: make test factory day generation DST-safe` — the TRIP-SVC-015 fix
+
+Final test state: **shared 136/136 · server 4699/4699 · client 3084 passed (38 skipped)**,
+build green. Remaining follow-ups are the external items listed above (GitHub repo rename,
+domain, third-party plugin migration).
