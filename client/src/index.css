@@ -892,6 +892,24 @@ body {
   background: transparent !important;
 }
 
+/* ── Aurora map tint ──────────────────────────────────────────────
+   Warms the basemap into the Aurora palette. Applied to the raster tile
+   pane (Leaflet) and the GL canvas (MapLibre/Mapbox) only — HTML markers,
+   popups and controls are separate DOM layers and stay untinted. Kept
+   subtle so POI colors and route lines remain readable. */
+.leaflet-tile-pane {
+  filter: sepia(0.20) saturate(1.08) hue-rotate(-10deg);
+}
+.dark .leaflet-tile-pane {
+  filter: sepia(0.12) saturate(0.95) hue-rotate(-8deg) brightness(0.94);
+}
+.maplibregl-canvas, .mapboxgl-canvas {
+  filter: sepia(0.14) saturate(1.06) hue-rotate(-8deg);
+}
+.dark .maplibregl-canvas, .dark .mapboxgl-canvas {
+  filter: sepia(0.10) saturate(0.95) hue-rotate(-6deg) brightness(0.95);
+}
+
 /* ── Leaflet z-index ───────────────────────────── */
 .leaflet-container {
   z-index: 0;
