@@ -99,7 +99,11 @@ export function createTrip(
     const end = new Date(overrides.end_date);
     const tripId = result.lastInsertRowid as number;
     let dayNumber = 1;
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    // Step in UTC: 'YYYY-MM-DD' parses as UTC midnight, and local-time setDate()
+    // drops a day when the range crosses a DST fall-back in the host timezone
+    // (e.g. Nov 1-3 2025 in America/Los_Angeles). Production generateDays uses
+    // pure Date.UTC arithmetic; mirror that here.
+    for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
       const dateStr = d.toISOString().slice(0, 10);
       db.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (?, ?, ?)').run(tripId, dayNumber++, dateStr);
     }
