@@ -27,25 +27,47 @@ export function supportsCustom3d(style: string): boolean {
   return !isStandardFamily(style)
 }
 
-// Add a 3D buildings extrusion layer to a non-Standard Mapbox style. For
-// the pure satellite style we lazily attach `mapbox-streets-v8` as a
-// fallback source so real building volumes sit on top of the imagery —
-// the Apple Maps-style "3D satellite" look the user asked for.
+// Add a 3D buildings extrusion layer to any non-Standard GL style with
+// vector building data — Mapbox styles and MapLibre/OpenFreeMap styles
+// alike, so the free provider gets real 3D buildings too.
 export function addCustom3dBuildings(map: mapboxgl.Map, dark: boolean) {
   if (map.getLayer('yipyip-3d-buildings')) return
   const baseColor = dark ? '#3b3b3f' : '#cfd2d6'
 
-  // Styles without a `composite` source (pure satellite) need a fallback
-  // vector tileset for building geometry.
-  let sourceId = 'composite'
-  if (!map.getSource('composite')) {
-    sourceId = 'mapbox-streets-v8'
-    if (!map.getSource(sourceId)) {
-      try {
-        map.addSource(sourceId, { type: 'vector', url: 'mapbox://mapbox.mapbox-streets-v8' })
-      } catch { return }
+  // Two building schemas are supported: Mapbox styles carry a `composite`
+  // source with `height`/`min_height` and an `extrude` flag, while MapLibre/
+  // OpenFreeMap styles use the OpenMapTiles schema (`openmaptiles` source,
+  // `render_height`/`render_min_height`, `hide_3d` flag).
+  let sourceId: string
+  let omt = false // OpenMapTiles schema vs Mapbox streets schema
+  if (map.getSource('composite')) {
+    sourceId = 'composite'
+  } else if (map.getSource('openmaptiles')) {
+    sourceId = 'openmaptiles'
+    omt = true
+  } else {
+    // Unknown style: reuse its first vector source, assuming OMT-compatible
+    // attribute names (the common case for custom/self-hosted styles).
+    const sources = (map.getStyle()?.sources || {}) as Record<string, { type?: string }>
+    const vectorId = Object.keys(sources).find(id => sources[id]?.type === 'vector')
+    if (vectorId) {
+      sourceId = vectorId
+      omt = true
+    } else {
+      // No vector data at all (pure satellite) — attach the public Mapbox
+      // streets tileset, which only loads on the Mapbox provider (token
+      // required), so building volumes sit on top of the imagery.
+      sourceId = 'mapbox-streets-v8'
+      if (!map.getSource(sourceId)) {
+        try {
+          map.addSource(sourceId, { type: 'vector', url: 'mapbox://mapbox.mapbox-streets-v8' })
+        } catch { return }
+      }
     }
   }
+
+  const heightAttr = omt ? 'render_height' : 'height'
+  const baseAttr = omt ? 'render_min_height' : 'min_height'
 
   try {
     // Place extrusions below the first label layer so text stays readable.
@@ -55,7 +77,9 @@ export function addCustom3dBuildings(map: mapboxgl.Map, dark: boolean) {
       id: 'yipyip-3d-buildings',
       source: sourceId,
       'source-layer': 'building',
-      filter: ['==', 'extrude', 'true'],
+      // Mapbox marks extrudable footprints with `extrude`; OMT marks the
+      // opposite — buildings excluded from 3D — with `hide_3d`.
+      filter: omt ? ['!=', ['get', 'hide_3d'], true] : ['==', 'extrude', 'true'],
       type: 'fill-extrusion',
       minzoom: 14,
       paint: {
@@ -63,12 +87,12 @@ export function addCustom3dBuildings(map: mapboxgl.Map, dark: boolean) {
         'fill-extrusion-height': [
           'interpolate', ['linear'], ['zoom'],
           14, 0,
-          15.5, ['coalesce', ['get', 'height'], 0],
+          15.5, ['coalesce', ['get', heightAttr], 0],
         ],
         'fill-extrusion-base': [
           'interpolate', ['linear'], ['zoom'],
           14, 0,
-          15.5, ['coalesce', ['get', 'min_height'], 0],
+          15.5, ['coalesce', ['get', baseAttr], 0],
         ],
         'fill-extrusion-opacity': 0.85,
       },

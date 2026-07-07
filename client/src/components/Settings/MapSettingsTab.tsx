@@ -358,8 +358,8 @@ export default function MapSettingsTab(): React.ReactElement {
             </p>
           </div>
 
-          {provider === 'mapbox-gl' && (
-          <>
+          {/* 3D applies to both GL providers — Mapbox styles extrude via
+              `composite`, MapLibre/OpenFreeMap via OpenMapTiles buildings. */}
           <div className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
             supports3d
               ? 'border-slate-200 dark:border-slate-700'
@@ -377,6 +377,8 @@ export default function MapSettingsTab(): React.ReactElement {
             />
           </div>
 
+          {provider === 'mapbox-gl' && (
+          <>
           <div className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
             <div className="flex-1">
               <div className="text-sm font-medium text-slate-900 dark:text-white flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
@@ -437,7 +439,7 @@ export default function MapSettingsTab(): React.ReactElement {
               // Zoom in close so the style's character (3D buildings,
               // satellite texture, label density) is immediately visible.
               zoom={Math.max(parseInt(String(defaultZoom)) || 10, 16)}
-              enable3d={provider === 'mapbox-gl' && mapbox3d && supports3d}
+              enable3d={mapbox3d && supports3d}
               quality={provider === 'mapbox-gl' && mapboxQuality}
               onClick={(ll) => { setDefaultLat(ll.lat); setDefaultLng(ll.lng) }}
             />

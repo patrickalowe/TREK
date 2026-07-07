@@ -133,6 +133,8 @@ vi.mock('../../services/photoService', () => ({
 }))
 
 import { MapViewGL } from './MapViewGL'
+import maplibregl from 'maplibre-gl'
+import { supportsCustom3d, addCustom3dBuildings, addTerrainAndSky } from './mapboxSetup'
 
 function buildMapPlace(overrides: Record<string, any> = {}) {
   return {
@@ -438,5 +440,38 @@ describe('MapViewGL', () => {
     act(() => { moveEnds.forEach(fn => fn()) })
     act(() => { el.dispatchEvent(new MouseEvent('mouseenter', { clientX: 10, clientY: 10 })) })
     expect(queryByTestId('tooltip')).toBeTruthy()
+  })
+
+  it('FE-COMP-MAPVIEWGL-014: MapLibre provider gets free 3D — pitched camera + building extrusions, no terrain', async () => {
+    useSettingsStore.setState({
+      settings: {
+        ...useSettingsStore.getState().settings,
+        map_provider: 'maplibre-gl',
+        mapbox_3d_enabled: true,
+      },
+    } as any)
+    vi.mocked(supportsCustom3d).mockReturnValue(true)
+
+    render(
+      <MapViewGL
+        places={[buildMapPlace({ id: 1, lat: 48.8584, lng: 2.2945 })]}
+        fitKey={1}
+        glProvider="maplibre-gl"
+      />,
+    )
+    await act(async () => {})
+
+    // The 3D toggle applies to the token-less MapLibre provider too.
+    const opts = vi.mocked((maplibregl as any).Map).mock.calls[0][0] as any
+    expect(opts.pitch).toBe(45)
+
+    // Firing 'load' adds OpenMapTiles building extrusions; terrain stays
+    // Mapbox-satellite-only (wantsTerrain is false for OpenFreeMap styles).
+    const load = glMap.on.mock.calls.find(c => c[0] === 'load')?.[1] as () => void
+    act(() => { load() })
+    expect(addCustom3dBuildings).toHaveBeenCalled()
+    expect(addTerrainAndSky).not.toHaveBeenCalled()
+
+    vi.mocked(supportsCustom3d).mockReturnValue(false) // restore suite default
   })
 })

@@ -15,7 +15,12 @@ Choose the rendering engine:
 | Provider | Description |
 |----------|-------------|
 | **Leaflet** | Classic 2D renderer. Works with any raster tile URL. |
+| **MapLibre GL** | Free vector tiles from [OpenFreeMap](https://openfreemap.org) with 3D building support. No token or account needed. |
 | **Mapbox GL** *(Experimental)* | Vector tiles with 3D buildings and terrain support. Requires a Mapbox access token. |
+
+## MapLibre GL — free 3D
+
+MapLibre GL renders OpenFreeMap vector styles (Liberty, Bright, Positron) at no cost and with no API key. The **3D Buildings & Terrain** toggle applies here too: the camera tilts to 45° and real building extrusions are drawn from the OpenMapTiles building layer. Terrain elevation is not available on this provider (it is Mapbox-satellite only — see below).
 
 ## Leaflet — tile source
 

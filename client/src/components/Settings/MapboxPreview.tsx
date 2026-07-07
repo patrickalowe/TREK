@@ -27,7 +27,6 @@ export default function GlMapPreview({ provider = 'mapbox-gl', token = '', style
   const isMapLibre = provider === 'maplibre-gl'
   const gl = (isMapLibre ? maplibregl : mapboxgl) as any
   const glStyle = normalizeStyleForProvider(provider, style)
-  const enableMapbox3d = !isMapLibre && enable3d
 
   useEffect(() => {
     if (!containerRef.current || (!isMapLibre && !token)) return
@@ -38,7 +37,7 @@ export default function GlMapPreview({ provider = 'mapbox-gl', token = '', style
       style: glStyle,
       center: [lng, lat],
       zoom,
-      pitch: enableMapbox3d ? 45 : 0,
+      pitch: enable3d ? 45 : 0,
       attributionControl: true,
       antialias: quality,
     }
@@ -48,7 +47,7 @@ export default function GlMapPreview({ provider = 'mapbox-gl', token = '', style
     mapRef.current = map
 
     map.on('load', () => {
-      if (enableMapbox3d) {
+      if (enable3d) {
         if (!isStandardFamily(glStyle)) addTerrainAndSky(map)
         if (supportsCustom3d(glStyle)) {
           const dark = document.documentElement.classList.contains('dark')
@@ -68,7 +67,7 @@ export default function GlMapPreview({ provider = 'mapbox-gl', token = '', style
       try { map.remove() } catch { /* noop */ }
       mapRef.current = null
     }
-  }, [provider, token, glStyle, enableMapbox3d, quality])
+  }, [provider, token, glStyle, enable3d, quality])
 
   // Recenter without rebuilding the map when lat/lng/zoom change externally
   useEffect(() => {

@@ -23,9 +23,9 @@ export const MAPBOX_STYLE_PRESETS: GlStylePreset[] = [
 ]
 
 export const OPENFREEMAP_STYLE_PRESETS: GlStylePreset[] = [
-  { name: 'OpenFreeMap Liberty', url: OPENFREEMAP_DEFAULT_STYLE, tags: ['OpenFreeMap', '2D'] },
-  { name: 'OpenFreeMap Bright', url: 'https://tiles.openfreemap.org/styles/bright', tags: ['OpenFreeMap', 'Classic'] },
-  { name: 'OpenFreeMap Positron', url: 'https://tiles.openfreemap.org/styles/positron', tags: ['OpenFreeMap', 'Minimal'] },
+  { name: 'OpenFreeMap Liberty', url: OPENFREEMAP_DEFAULT_STYLE, tags: ['3D', 'OpenFreeMap'] },
+  { name: 'OpenFreeMap Bright', url: 'https://tiles.openfreemap.org/styles/bright', tags: ['3D', 'Classic'] },
+  { name: 'OpenFreeMap Positron', url: 'https://tiles.openfreemap.org/styles/positron', tags: ['3D', 'Minimal'] },
 ]
 
 export function getStylePresets(provider: GlMapProvider): GlStylePreset[] {

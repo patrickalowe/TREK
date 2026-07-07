@@ -220,7 +220,9 @@ export function MapViewGL({
   const isMapLibre = glProvider === 'maplibre-gl'
   const gl = (isMapLibre ? maplibregl : mapboxgl) as any
   const glStyle = styleForActiveProvider(glProvider, rawMapboxStyle, rawMaplibreStyle)
-  const enableMapbox3d = !isMapLibre && mapbox3d
+  // 3D works on both providers: Mapbox styles extrude via `composite`,
+  // MapLibre/OpenFreeMap styles via the OpenMapTiles `building` layer.
+  const enable3d = mapbox3d
   const placesPhotosEnabled = useAuthStore(s => s.placesPhotosEnabled)
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>(getAllThumbs)
   const [mapReady, setMapReady] = useState(false)
@@ -286,7 +288,7 @@ export function MapViewGL({
       style: glStyle,
       center: [center[1], center[0]],
       zoom,
-      pitch: enableMapbox3d ? 45 : 0,
+      pitch: enable3d ? 45 : 0,
       attributionControl: true,
       antialias: mapboxQuality,
     }
@@ -308,7 +310,7 @@ export function MapViewGL({
     ;(window as any).__yipyip_map = map
 
     map.on('load', () => {
-      if (enableMapbox3d) {
+      if (enable3d) {
         // Terrain is only valuable on satellite styles — on clean vector
         // styles it makes route lines drift off the HTML markers because
         // the lines snap to DEM height while markers stay at sea level.
@@ -619,7 +621,7 @@ export function MapViewGL({
     }
     // Terrain altitude sync only matters with mapbox 3D/terrain on; skip the per-frame
     // listener entirely for MapLibre and flat mapbox styles.
-    if (enableMapbox3d) map.on('render', syncMarkerAltitudes)
+    if (enable3d) map.on('render', syncMarkerAltitudes)
 
     return () => {
       canvas.removeEventListener('mousedown', onAuxDown)
@@ -645,7 +647,7 @@ export function MapViewGL({
       mapRef.current = null
       setMapReady(false)
     }
-  }, [glProvider, glStyle, mapboxToken, enableMapbox3d, mapboxQuality]) // rebuild on provider/style changes only
+  }, [glProvider, glStyle, mapboxToken, enable3d, mapboxQuality]) // rebuild on provider/style changes only
 
   // Pin the basemap label language to the UI language so labels don't fall back to the
   // browser/OS locale and stack multiple scripts per place (e.g. "India/भारत/India", #1299).
@@ -951,7 +953,7 @@ export function MapViewGL({
         map.fitBounds(bounds, {
           padding: paddingOpts,
           maxZoom: 15,
-          pitch: enableMapbox3d ? 45 : 0,
+          pitch: enable3d ? 45 : 0,
           duration: 400,
         })
       } catch { /* noop */ }
@@ -970,7 +972,7 @@ export function MapViewGL({
       map.flyTo({
         center: [target.lng, target.lat],
         zoom: Math.max(map.getZoom(), 14),
-        pitch: enableMapbox3d ? 45 : 0,
+        pitch: enable3d ? 45 : 0,
         duration: 400,
         // Account for the side panels and the bottom inspector / day-detail panel
         // so the selected pin lands in the centre of the *visible* map area rather
@@ -978,7 +980,7 @@ export function MapViewGL({
         padding: paddingOpts,
       })
     } catch { /* noop */ }
-  }, [selectedPlaceId, enableMapbox3d]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedPlaceId, enable3d]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // External center/zoom prop changes — jump without animation
   useEffect(() => {

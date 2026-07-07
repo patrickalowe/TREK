@@ -219,7 +219,8 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
   const isMapLibre = glProvider === 'maplibre-gl'
   const gl = (isMapLibre ? maplibregl : mapboxgl) as any
   const glStyle = styleForActiveProvider(glProvider, rawMapboxStyle, rawMaplibreStyle)
-  const enableMapbox3d = !isMapLibre && mapbox3d
+  // 3D works on both providers (see mapboxSetup.addCustom3dBuildings).
+  const enable3d = mapbox3d
   const containerRef = useRef<HTMLDivElement>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any | null>(null)
@@ -326,11 +327,11 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
       mapRef.current.flyTo({
         center: marker.getLngLat(),
         zoom: Math.max(mapRef.current.getZoom(), 14),
-        pitch: enableMapbox3d ? 45 : 0,
+        pitch: enable3d ? 45 : 0,
         duration: 600,
       })
     } catch { /* map not yet ready */ }
-  }, [highlightMarker, enableMapbox3d])
+  }, [highlightMarker, enable3d])
 
   const invalidateSize = useCallback(() => {
     try { mapRef.current?.resize() } catch { /* map not yet ready */ }
@@ -357,7 +358,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
       style: glStyle,
       center: hasPoints ? bounds.getCenter() : [0, 30],
       zoom: hasPoints ? 2 : 1,
-      pitch: enableMapbox3d && fullScreen ? 45 : 0,
+      pitch: enable3d && fullScreen ? 45 : 0,
       attributionControl: true,
       antialias: mapboxQuality,
     }
@@ -367,7 +368,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
     mapRef.current = map
 
     map.on('load', () => {
-      if (enableMapbox3d) {
+      if (enable3d) {
         if (!isStandardFamily(glStyle) && wantsTerrain(glStyle)) addTerrainAndSky(map)
         if (supportsCustom3d(glStyle)) addCustom3dBuildings(map, !!darkRef.current)
       }
@@ -428,7 +429,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
           map.fitBounds(bounds, {
             padding: { top: 50, bottom: pb, left: 50, right: 50 },
             maxZoom: 16,
-            pitch: enableMapbox3d && fullScreen ? 45 : 0,
+            pitch: enable3d && fullScreen ? 45 : 0,
             duration: 0,
           })
         } catch { /* empty bounds */ }
@@ -446,7 +447,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
       try { map.remove() } catch { /* noop */ }
       mapRef.current = null
     }
-  }, [entries, stableTrail, glProvider, glStyle, mapboxToken, enableMapbox3d, mapboxQuality, fullScreen, paddingBottom])
+  }, [entries, stableTrail, glProvider, glStyle, mapboxToken, enable3d, mapboxQuality, fullScreen, paddingBottom])
 
   // external activeMarkerId → highlight + flyTo
   useEffect(() => {
@@ -459,13 +460,13 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
         mapRef.current.flyTo({
           center: marker.getLngLat(),
           zoom: Math.max(mapRef.current.getZoom(), 12),
-          pitch: enableMapbox3d && fullScreen ? 45 : 0,
+          pitch: enable3d && fullScreen ? 45 : 0,
           duration: 500,
         })
       } catch { /* map not ready */ }
     }, 50)
     return () => clearTimeout(t)
-  }, [activeMarkerId, highlightMarker, enableMapbox3d, fullScreen])
+  }, [activeMarkerId, highlightMarker, enable3d, fullScreen])
 
   if (!isMapLibre && !mapboxToken) {
     return (
