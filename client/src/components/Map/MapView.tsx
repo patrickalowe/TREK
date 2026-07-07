@@ -657,7 +657,7 @@ export const MapView = memo(function MapView({
       center={center}
       zoom={zoom}
       zoomControl={false}
-      className="w-full h-full bg-[#e5e7eb]"
+      className="w-full h-full bg-[#e5e7eb] aurora-map-glow"
     >
       <TileLayer
         url={tileUrl}

@@ -912,6 +912,55 @@ body {
   filter: sepia(0.30) saturate(0.92) hue-rotate(-9deg) brightness(0.80);
 }
 
+/* ── Aurora map glow overlay ──────────────────────────────────────
+   Drifting orange/teal light fields blended over the basemap. Attach
+   `aurora-map-glow` to the map element itself (.leaflet-container or the
+   GL container div). Pure decoration: pointer-events none, oversized and
+   animated by transform only (the map containers clip via overflow),
+   static under prefers-reduced-motion.
+   Light mode: soft-light wash (sunrise). Dark mode: screen blend at low
+   opacity — an actual aurora glow over the dusk-graded map.
+   z-index 500 keeps it above Leaflet's tile pane (200) but below the
+   marker (600) and popup (700) panes; on GL maps it sits above markers,
+   which the low-alpha blend keeps legible. */
+.aurora-map-glow::before,
+.aurora-map-glow::after {
+  content: '';
+  position: absolute;
+  inset: -18%;
+  z-index: 500;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+}
+.aurora-map-glow::before {
+  background:
+    radial-gradient(38% 46% at 14% 10%, rgba(234,88,12,0.9), transparent 70%),
+    radial-gradient(30% 40% at 82% 88%, rgba(217,119,6,0.6), transparent 70%);
+  animation: aurora-glow-a 16s ease-in-out infinite alternate;
+}
+.aurora-map-glow::after {
+  background:
+    radial-gradient(40% 50% at 86% 14%, rgba(8,145,178,0.75), transparent 70%),
+    radial-gradient(28% 38% at 12% 90%, rgba(99,102,241,0.45), transparent 72%);
+  animation: aurora-glow-b 21s ease-in-out infinite alternate;
+}
+.dark .aurora-map-glow::before,
+.dark .aurora-map-glow::after {
+  mix-blend-mode: screen;
+  opacity: 0.30;
+}
+@keyframes aurora-glow-a {
+  from { transform: translate3d(-2%, -1.5%, 0); }
+  to   { transform: translate3d(3%, 2.5%, 0); }
+}
+@keyframes aurora-glow-b {
+  from { transform: translate3d(2%, 1.5%, 0); }
+  to   { transform: translate3d(-3%, -2%, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aurora-map-glow::before, .aurora-map-glow::after { animation: none; }
+}
+
 /* ── Leaflet z-index ───────────────────────────── */
 .leaflet-container {
   z-index: 0;

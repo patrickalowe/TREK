@@ -1046,7 +1046,7 @@ export function MapViewGL({
 
   return (
     <div className="w-full h-full relative">
-      <div ref={containerRef} className="w-full h-full" />
+      <div ref={containerRef} className="w-full h-full aurora-map-glow" />
       {isMobile && (
         <LocationButton
           mode={trackingMode}
